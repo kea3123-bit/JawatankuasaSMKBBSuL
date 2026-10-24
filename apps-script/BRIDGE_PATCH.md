@@ -1,27 +1,52 @@
-# Patch Bridges.gs untuk JawatankuasaSMKBBSuL
+# Setup bridge untuk JawatankuasaSMKBBSuL
 
-Tambahkan nama fungsi berikut ke array `pagesBridgeMethodAllowed_`:
+**Tidak perlu cari atau ubah `Bridges.gs`.** Projek eKeberadaan semasa menggunakan `Code.gs` dan tiada bridge sedia ada.
 
-```js
-'jtGetBootstrap',
-'jtGetTeacherDetail',
-'jtGetAdminData',
-'jtAdminUpdatePoint',
-'jtAdminUpdateTeacher',
-'jtAdminSaveAssignment',
-'jtAdminDeactivateAssignment',
-```
+Cara yang betul ialah tambah **dua fail baharu** ke projek Apps Script eKeberadaan yang sama:
 
-Kemudian tambah kes berikut di dalam `invokePagesBridgeMethod_`:
+1. `CommitteeApi.gs` — API database jawatankuasa/pemberatan.
+2. `PagesBridge.gs` — menerima POST daripada GitHub Pages dan memanggil fungsi login eKeberadaan + fungsi `jt*`.
 
-```js
-case 'jtGetBootstrap': return jtGetBootstrap.apply(null,args);
-case 'jtGetTeacherDetail': return jtGetTeacherDetail.apply(null,args);
-case 'jtGetAdminData': return jtGetAdminData.apply(null,args);
-case 'jtAdminUpdatePoint': return jtAdminUpdatePoint.apply(null,args);
-case 'jtAdminUpdateTeacher': return jtAdminUpdateTeacher.apply(null,args);
-case 'jtAdminSaveAssignment': return jtAdminSaveAssignment.apply(null,args);
-case 'jtAdminDeactivateAssignment': return jtAdminDeactivateAssignment.apply(null,args);
-```
+Kedua-dua fail sudah tersedia dalam folder `apps-script/` repo ini.
 
-`EK_PAGES_ORIGINS` sedia ada sudah mempunyai `https://kea3123-bit.github.io`, jadi origin GitHub Pages repo ini tidak perlu ditambah jika kod zip yang diberi digunakan.
+## Langkah
+
+1. Buka Google Sheet eKeberadaan.
+2. Extensions → Apps Script.
+3. Klik **+ → Script** dan cipta `CommitteeApi.gs`.
+4. Salin seluruh kandungan `apps-script/CommitteeApi.gs` ke fail itu.
+5. Klik **+ → Script** lagi dan cipta `PagesBridge.gs`.
+6. Salin seluruh kandungan `apps-script/PagesBridge.gs`.
+7. Simpan.
+8. Deploy → Manage deployments → Edit deployment Web App semasa → **New version** → Deploy.
+9. Jangan cipta deployment baharu jika mahu URL `/exec` sedia ada kekal.
+
+## Fungsi yang dibenarkan oleh PagesBridge.gs
+
+Login/session eKeberadaan:
+- `checkDelimaAccount`
+- `loginWithPin`
+- `setFirstPin`
+- `resumeSession`
+- `resumeTrustedDevice`
+- `logoutApp`
+
+Jawatankuasa:
+- `jtGetBootstrap`
+- `jtGetTeacherDetail`
+- `jtGetAdminData`
+- `jtAdminUpdatePoint`
+- `jtAdminUpdateTeacher`
+- `jtAdminSaveAssignment`
+- `jtAdminDeactivateAssignment`
+
+Origin yang dibenarkan:
+- `https://kea3123-bit.github.io`
+
+## Admin
+
+Admin penuh jika salah satu benar:
+- kategori eKeberadaan = `Pengurusan`; atau
+- tab `PENGGUNA` dalam database eKeberadaan mempunyai `Pentadbir = TRUE`.
+
+AKP biasa tidak boleh login ke sistem Jawatankuasa. AKP dengan `Pentadbir = TRUE` dibenarkan sebagai Pentadbir Sistem.
