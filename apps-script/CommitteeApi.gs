@@ -141,7 +141,7 @@ function jtGetTeacherDetail(token,personId){
 }
 function jtGetAdminRules(token){
   const ctx=jtRequireAdmin_(token),d=jtRows_(JT_SHEETS.RULES),ix=jtIndex_(d.headers),ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers),usage={};
-  ad.rows.forEach(r=>{if(jtBool_(r[ai.Aktif])){const k=String(r[ai.KodSkor]||'');usage[k]=(usage[k]||0)+1}});
+  ad.rows.forEach(r=>{const k=String(r[ai.KodSkor]||'');if(k)usage[k]=(usage[k]||0)+1});
   return {ok:true,user:jtPublicUser_(ctx),rules:d.rows.filter(r=>jtBool_(r[ix.Aktif])).map(r=>({code:String(r[ix.KodSkor]),points:Number(r[ix.Mata])||0,usageCount:Number(usage[String(r[ix.KodSkor])]||0)})).sort((a,b)=>b.points-a.points||a.code.localeCompare(b.code,'ms'))};
 }
 function jtGetAdminTeachers(token,forceSync){
@@ -150,7 +150,7 @@ function jtGetAdminTeachers(token,forceSync){
 }
 function jtGetAdminCommittees(token){
   const ctx=jtRequireAdmin_(token),d=jtRows_(JT_SHEETS.COMMITTEES),ix=jtIndex_(d.headers),ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers),usage={};
-  ad.rows.forEach(r=>{if(jtBool_(r[ai.Aktif])){const k=String(r[ai.CommitteeID]||'');usage[k]=(usage[k]||0)+1}});
+  ad.rows.forEach(r=>{const k=String(r[ai.CommitteeID]||'');if(k)usage[k]=(usage[k]||0)+1});
   return {ok:true,user:jtPublicUser_(ctx),committees:d.rows.filter(r=>jtBool_(r[ix.Aktif])).map(r=>({id:String(r[ix.CommitteeID]),code:String(r[ix.KodManual]||''),name:String(r[ix.NamaJawatankuasa]),field:String(r[ix.Bidang]||''),usageCount:Number(usage[String(r[ix.CommitteeID])]||0)})).sort((a,b)=>a.name.localeCompare(b.name,'ms'))};
 }
 function jtGetAdminData(token){
