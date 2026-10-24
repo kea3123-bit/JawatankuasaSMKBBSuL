@@ -126,9 +126,35 @@ function jtRebuildTeacherStats_(){
 }
 function jtPublicUser_(ctx){ return {name:ctx.user.name,email:ctx.user.email,category:ctx.user.category,jobTitle:ctx.person.JawatanHakiki||ctx.user.jobTitle||'',personId:ctx.person.PersonID,group:ctx.person.Kumpulan||'Guru',isAdmin:ctx.isAdmin,isManagement:!!ctx.isManagement,isSystemAdmin:!!ctx.isSystemAdmin,adminSource:ctx.adminSource||''}; }
 
-function jtGetBootstrap(token){
-  const ctx=jtRequireUser_(token), stats=jtTeacherStats_();
-  return {ok:true,user:jtPublicUser_(ctx),teachers:stats.list,school:'SMK Bandar Baru Sungai Lalang',year:'2026'};
+function jtGetBootstrap(token,includeSearch){
+  const ctx=jtRequireUser_(token),stats=jtTeacherStats_();
+  const out={ok:true,user:jtPublicUser_(ctx),teachers:stats.list,school:'SMK Bandar Baru Sungai Lalang',year:'2026'};
+  if(includeSearch){
+    const activeIds={};stats.list.forEach(t=>activeIds[t.id]=true);
+    const rules=jtRuleMap_(),ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers);
+    out.searchRecords=ad.rows
+      .filter(r=>jtBool_(r[ai.Aktif])&&activeIds[String(r[ai.PersonID]||'')])
+      .map(r=>({
+        personId:String(r[ai.PersonID]||''),
+        name:String(r[ai.Nama]||''),
+        committeeId:String(r[ai.CommitteeID]||''),
+        committee:String(r[ai.Jawatankuasa]||''),
+        role:String(r[ai.Peranan]||''),
+        points:Number(rules[String(r[ai.KodSkor]||'')]||0),
+        field:String(r[ai.Bidang]||'')
+      }));
+    const cd=jtRows_(JT_SHEETS.COMMITTEES),ci=jtIndex_(cd.headers);
+    out.searchCommittees=cd.rows
+      .filter(r=>jtBool_(r[ci.Aktif]))
+      .map(r=>({
+        id:String(r[ci.CommitteeID]||''),
+        code:String(r[ci.KodManual]||''),
+        name:String(r[ci.NamaJawatankuasa]||''),
+        field:String(r[ci.Bidang]||'')
+      }))
+      .sort((a,b)=>a.name.localeCompare(b.name,'ms'));
+  }
+  return out;
 }
 function jtGetTeacherDetail(token,personId){
   jtRequireUser_(token);personId=String(personId||'').trim();
