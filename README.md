@@ -32,12 +32,13 @@ Existing backend deployment:
 `https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec`
 
 1. Open the Apps Script project behind the deployment above.
-2. Add a script file named `CommitteeApi.gs`.
-3. Paste the contents of `apps-script/CommitteeApi.gs`.
-4. Apply the bridge additions in `apps-script/BRIDGE_PATCH.md` to `Bridges.gs`.
-5. Deploy a **new version** of the existing Web App deployment so the same `/exec` URL remains valid.
+2. Add a new script file named `CommitteeApi.gs` and paste `apps-script/CommitteeApi.gs`.
+3. Add a second new script file named `PagesBridge.gs` and paste `apps-script/PagesBridge.gs`.
+4. Do **not** edit or look for `Bridges.gs`; the current eKeberadaan project does not have that file.
+5. Save the project.
+6. Deploy a **new version of the existing Web App deployment** so the same `/exec` URL remains valid.
 
-The supplied eKeberadaan bridge already allows `https://kea3123-bit.github.io` by default.
+`PagesBridge.gs` adds the missing `doPost()` endpoint and only accepts requests from `https://kea3123-bit.github.io`.
 
 ## Security model
 
