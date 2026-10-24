@@ -211,7 +211,7 @@ function jtGetTeacherDetail(token,personId){
   if(!prow) throw new Error('Guru tidak dijumpai.');
   const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers), rules=jtRuleMap_();
   const assignments=ad.rows.filter(r=>String(r[ai.PersonID])===personId&&jtBool_(r[ai.Aktif])).map(r=>({
-    assignmentId:String(r[ai.AssignmentID]),committeeId:String(r[ai.CommitteeID]||''),committee:String(r[ai.Jawatankuasa]||''),role:String(r[ai.Peranan]||''),scoreCode:String(r[ai.KodSkor]||''),points:Number(rules[String(r[ai.KodSkor]||'')]||0),field:String(r[ai.Bidang]||''),type:String(r[ai.Jenis]||''),page:String(r[ai.MukaSurat]||''),note:String(r[ai.Catatan]||''),mappingNote:String(r[ai.MappingNote]||''),needsReview:jtBool_(r[ai.PerluSemakan])
+    assignmentId:String(r[ai.AssignmentID]),committeeId:String(r[ai.CommitteeID]||''),committee:String(r[ai.Jawatankuasa]||''),role:String(r[ai.Peranan]||''),scoreCode:String(r[ai.KodSkor]||''),points:Number(rules[String(r[ai.KodSkor]||'')]||0),field:String(r[ai.Bidang]||''),type:String(r[ai.Jenis]||''),note:String(r[ai.Catatan]||''),mappingNote:String(r[ai.MappingNote]||''),needsReview:jtBool_(r[ai.PerluSemakan])
   }));
   const total=assignments.reduce((s,a)=>s+a.points,0);
   return {ok:true,teacher:{personId,name:String(prow[pi.Nama]),jobTitle:String(prow[pi.JawatanHakiki]||''),email:String(prow[pi.Emel]||''),totalPoints:total,taskCount:assignments.length},assignments};
@@ -246,7 +246,7 @@ function jtGetAdminData(token){
   const rd=jtRows_(JT_SHEETS.RULES), ri=jtIndex_(rd.headers);
   const cd=jtRows_(JT_SHEETS.COMMITTEES), ci=jtIndex_(cd.headers);
   const pd=jtRows_(JT_SHEETS.PEOPLE), pi=jtIndex_(pd.headers);
-  return {ok:true,user:jtPublicUser_(ctx),rules:rd.rows.filter(r=>jtBool_(r[ri.Aktif])).map(r=>({code:String(r[ri.KodSkor]),points:Number(r[ri.Mata])||0,source:String(r[ri.Sumber]||''),note:String(r[ri.Catatan]||'')})),committees:cd.rows.filter(r=>jtBool_(r[ci.Aktif])).map(r=>({id:String(r[ci.CommitteeID]),code:String(r[ci.KodManual]||''),name:String(r[ci.NamaJawatankuasa]),field:String(r[ci.Bidang]||''),page:String(r[ci.MukaSurat]||'')})),teachers:pd.rows.filter(r=>String(r[pi.Kumpulan])==='Guru'&&jtBool_(r[pi.Aktif])).map(r=>({id:String(r[pi.PersonID]),name:String(r[pi.Nama]),jobTitle:String(r[pi.JawatanHakiki]||''),email:String(r[pi.Emel]||'')}))};
+  return {ok:true,user:jtPublicUser_(ctx),rules:rd.rows.filter(r=>jtBool_(r[ri.Aktif])).map(r=>({code:String(r[ri.KodSkor]),points:Number(r[ri.Mata])||0,source:String(r[ri.Sumber]||''),note:String(r[ri.Catatan]||'')})),committees:cd.rows.filter(r=>jtBool_(r[ci.Aktif])).map(r=>({id:String(r[ci.CommitteeID]),code:String(r[ci.KodManual]||''),name:String(r[ci.NamaJawatankuasa]),field:String(r[ci.Bidang]||'')})),teachers:pd.rows.filter(r=>String(r[pi.Kumpulan])==='Guru'&&jtBool_(r[pi.Aktif])).map(r=>({id:String(r[pi.PersonID]),name:String(r[pi.Nama]),jobTitle:String(r[pi.JawatanHakiki]||''),email:String(r[pi.Emel]||'')}))};
 }
 function jtNextCommitteeId_(rows,ix){
   let m=0;
@@ -318,7 +318,6 @@ function jtAdminSaveCommittee(token,payload){
     KodManual:code,
     NamaJawatankuasa:name,
     Bidang:field,
-    MukaSurat:'',
     Aktif:true
   };
   const row=d.headers.map(h=>values[h]===undefined?'':values[h]);
@@ -391,7 +390,7 @@ function jtAdminSaveAssignment(token,payload){
   const pd=jtRows_(JT_SHEETS.PEOPLE), pi=jtIndex_(pd.headers), p=pd.rows.find(r=>String(r[pi.PersonID])===personId&&String(r[pi.Kumpulan])==='Guru'); if(!p) throw new Error('Guru tidak dijumpai.');
   const rules=jtRuleMap_(); if(rules[scoreCode]===undefined) throw new Error('Kod skor tidak sah.');
   const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers); let rowNo=0,id=String(payload.assignmentId||'').trim(),before=null; if(id) ad.rows.some((r,i)=>{if(String(r[ai.AssignmentID])===id){rowNo=i+2;before=jtObj_(ad.headers,r);return true;}return false;}); else id=jtNextAssignmentId_(ad.rows,ai);
-  const committeeId=String(payload.committeeId||'').trim(); const values={AssignmentID:id,PersonID:personId,Nama:String(p[pi.Nama]),Kumpulan:'Guru',CommitteeID:committeeId,Jawatankuasa:committee,Peranan:role,KodSkor:scoreCode,Mata:Number(rules[scoreCode])||0,Bidang:String(payload.field||''),Jenis:String(payload.type||'Terus'),MukaSurat:String(payload.page||''),Catatan:String(payload.note||''),MappingNote:'Dikemaskini admin',PerluSemakan:false,Aktif:true,UpdatedAt:jtNow_(),UpdatedBy:ctx.user.email};
+  const committeeId=String(payload.committeeId||'').trim(); const values={AssignmentID:id,PersonID:personId,Nama:String(p[pi.Nama]),Kumpulan:'Guru',CommitteeID:committeeId,Jawatankuasa:committee,Peranan:role,KodSkor:scoreCode,Mata:Number(rules[scoreCode])||0,Bidang:String(payload.field||''),Jenis:String(payload.type||'Terus'),Catatan:String(payload.note||''),MappingNote:'Dikemaskini admin',PerluSemakan:false,Aktif:true,UpdatedAt:jtNow_(),UpdatedBy:ctx.user.email};
   const row=ad.headers.map(h=>values[h]===undefined?'':values[h]); if(rowNo) ad.sh.getRange(rowNo,1,1,row.length).setValues([row]); else ad.sh.appendRow(row);
   jtRebuildTeacherStats_(); jtAudit_(ctx.user,rowNo?'UPDATE_ASSIGNMENT':'ADD_ASSIGNMENT','PELANTIKAN',id,{before,after:values}); return {ok:true,assignmentId:id};
 }
