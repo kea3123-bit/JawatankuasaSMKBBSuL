@@ -33,7 +33,7 @@ Existing backend deployment:
 
 1. Open the modular eKeberadaan Apps Script project that contains `Bridges.gs`.
 2. Add a new script file named `CommitteeApi.gs` and paste `apps-script/CommitteeApi.gs`.
-3. Patch the existing `Bridges.gs` exactly as documented in `apps-script/BRIDGE_PATCH.md`: add the 7 `jt*` names to `pagesBridgeMethodAllowed_()` and the matching 7 cases to `invokePagesBridgeMethod_()`.
+3. Patch the existing `Bridges.gs` exactly as documented in `apps-script/BRIDGE_PATCH.md`: add the 11 `jt*` names to `pagesBridgeMethodAllowed_()` and the matching 11 cases to `invokePagesBridgeMethod_()`.
 4. Do **not** add another `doPost()` or `PagesBridge.gs`; the existing `Bridges.gs` already provides the GitHub Pages transport.
 5. Save the project.
 6. Deploy a **new version of the existing Web App deployment** so the same `/exec` URL remains valid.
