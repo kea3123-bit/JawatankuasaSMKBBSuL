@@ -237,7 +237,7 @@ function jtGetAdminCommittees(token){
   const d=jtRows_(JT_SHEETS.COMMITTEES), ix=jtIndex_(d.headers);
   return {ok:true,user:jtPublicUser_(ctx),committees:d.rows
     .filter(r=>jtBool_(r[ix.Aktif]))
-    .map(r=>({id:String(r[ix.CommitteeID]),code:String(r[ix.KodManual]||''),name:String(r[ix.NamaJawatankuasa]),field:String(r[ix.Bidang]||''),page:String(r[ix.MukaSurat]||'')}))
+    .map(r=>({id:String(r[ix.CommitteeID]),code:String(r[ix.KodManual]||''),name:String(r[ix.NamaJawatankuasa]),field:String(r[ix.Bidang]||'')}))
     .sort((a,b)=>a.name.localeCompare(b.name,'ms'))};
 }
 
