@@ -33,6 +33,15 @@
 <div id="adminContent" class="admin-grid hidden">
  <div class="panel"><div class="panel-head"><h3>Nilai Mata Jawatan</h3><p>Ubah satu nilai; semua jumlah guru akan dikira semula.</p></div><div class="panel-body"><input id="ruleSearch" type="search" placeholder="Cari kod skor..." style="width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;margin-bottom:9px"><div id="rulesList"></div></div></div>
  <div class="panel"><div class="panel-head"><h3>Pelantikan & Jawatan Guru</h3><p>Pilih guru untuk tambah, ubah atau nyahaktif tugas.</p></div><div class="panel-body"><div class="field"><label>Guru</label><select id="adminTeacher"></select></div><div class="field"><label>Jawatan hakiki</label><div style="display:flex;gap:7px"><input id="jobTitle"><button class="btn" id="saveJob">Simpan</button></div></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><button class="btn primary" id="newAssignment">+ Tambah pelantikan</button><div id="adminAssignments" style="margin-top:10px"></div></div></div>
+ <div class="panel"><div class="panel-head"><h3>Pengurusan Jawatankuasa</h3><p>Tambah jawatankuasa baharu untuk digunakan dalam pelantikan guru.</p></div><div class="panel-body">
+   <div class="field"><label>Nama Jawatankuasa</label><input id="newCommitteeName" placeholder="Contoh: Jawatankuasa Program Kecemerlangan"></div>
+   <div class="form-grid"><div class="field"><label>Kod Manual</label><input id="newCommitteeCode" placeholder="Contoh: JM30"></div><div class="field"><label>Bidang</label><input id="newCommitteeField" placeholder="Contoh: HEM"></div></div>
+   <div class="field"><label>Muka Surat</label><input id="newCommitteePage" placeholder="Optional"></div>
+   <button class="btn primary" id="addCommittee">+ Tambah Jawatankuasa</button>
+   <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+   <div style="display:flex;gap:8px;align-items:center;margin-bottom:9px"><input id="committeeSearchAdmin" type="search" placeholder="Cari jawatankuasa..." style="flex:1;padding:9px;border:1px solid var(--line);border-radius:9px"><span class="pill" id="committeeCountAdmin">0</span></div>
+   <div id="committeeListAdmin"></div>
+ </div></div>
 </div>
 </section>
 </main></div>
@@ -83,9 +92,37 @@ $('closeDetail').onclick=()=> $('detailModal').classList.add('hidden');$('detail
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const tab=b.dataset.tab;$('teachersTab').classList.toggle('hidden',tab!=='teachers');$('adminPanel').classList.toggle('hidden',tab!=='admin');if(tab==='admin'&&!state.admin)await loadAdmin()});
 async function loadAdmin(){if(!state.boot.user.isAdmin)return; $('adminLoading').classList.remove('hidden');$('adminContent').classList.add('hidden');try{state.admin=await bridge('jtGetAdminData',state.token);renderAdmin();$('adminContent').classList.remove('hidden')}catch(e){$('adminLoading').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>';return}$('adminLoading').classList.add('hidden')}
 $('refreshAdmin').onclick=()=>{state.admin=null;loadAdmin()};
-function renderAdmin(){const d=state.admin;$('adminTeacher').innerHTML=d.teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');if(!state.adminTeacherId||!d.teachers.some(t=>t.id===state.adminTeacherId))state.adminTeacherId=d.teachers[0]?.id||'';$('adminTeacher').value=state.adminTeacherId;renderRules();loadAdminTeacher()}
+function renderAdmin(){const d=state.admin;$('adminTeacher').innerHTML=d.teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');if(!state.adminTeacherId||!d.teachers.some(t=>t.id===state.adminTeacherId))state.adminTeacherId=d.teachers[0]?.id||'';$('adminTeacher').value=state.adminTeacherId;renderRules();renderCommitteesAdmin();loadAdminTeacher()}
 function renderRules(){let q=$('ruleSearch').value.trim().toLowerCase(),rules=state.admin.rules.filter(r=>!q||r.code.toLowerCase().includes(q));$('rulesList').innerHTML=rules.map(r=>`<div class="rule-row"><div><b>${esc(r.code)}</b><div class="sub">${esc(r.source||'')}</div></div><input type="number" min="0" max="100" step="1" value="${r.points}" data-rule="${esc(r.code)}"><button class="btn small save-rule" data-rule="${esc(r.code)}">Simpan</button></div>`).join('');document.querySelectorAll('.save-rule').forEach(b=>b.onclick=async()=>{const input=document.querySelector(`input[data-rule="${CSS.escape(b.dataset.rule)}"]`);b.disabled=true;try{await bridge('jtAdminUpdatePoint',state.token,b.dataset.rule,Number(input.value));toast('Mata dikemas kini');state.admin=null;await bootstrapJt();await loadAdmin()}catch(e){alert(errMsg(e))}finally{b.disabled=false}})}
 $('ruleSearch').oninput=()=>state.admin&&renderRules();$('adminTeacher').onchange=()=>{state.adminTeacherId=$('adminTeacher').value;loadAdminTeacher()};
+function renderCommitteesAdmin(){
+  if(!state.admin)return;
+  const q=($('committeeSearchAdmin')?.value||'').trim().toLowerCase();
+  const all=[...(state.admin.committees||[])].sort((a,b)=>a.name.localeCompare(b.name,'ms'));
+  const list=all.filter(x=>!q||(x.name+' '+x.code+' '+x.field).toLowerCase().includes(q));
+  $('committeeCountAdmin').textContent=all.length;
+  $('committeeListAdmin').innerHTML=list.slice(0,80).map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.name)}</b><div class="meta">${x.code?esc(x.code)+' · ':''}${esc(x.field||'Tiada bidang')}${x.page?' · hlm. '+esc(x.page):''}</div></div><span class="pill">${esc(x.id)}</span></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
+}
+$('committeeSearchAdmin').oninput=()=>state.admin&&renderCommitteesAdmin();
+$('addCommittee').onclick=async()=>{
+  const payload={
+    name:$('newCommitteeName').value.trim(),
+    code:$('newCommitteeCode').value.trim(),
+    field:$('newCommitteeField').value.trim(),
+    page:$('newCommitteePage').value.trim()
+  };
+  if(!payload.name)return alert('Masukkan nama jawatankuasa.');
+  const btn=$('addCommittee');btn.disabled=true;
+  try{
+    await bridge('jtAdminSaveCommittee',state.token,payload);
+    toast('Jawatankuasa baharu ditambah');
+    $('newCommitteeName').value='';$('newCommitteeCode').value='';$('newCommitteeField').value='';$('newCommitteePage').value='';
+    state.admin=null;
+    await loadAdmin();
+  }catch(e){alert(errMsg(e))}
+  finally{btn.disabled=false}
+};
+
 async function loadAdminTeacher(){const id=state.adminTeacherId||$('adminTeacher').value;if(!id)return;const t=state.admin.teachers.find(x=>x.id===id);$('jobTitle').value=t?.jobTitle||'';$('adminAssignments').innerHTML='<div class="loading">Memuatkan…</div>';try{const d=await bridge('jtGetTeacherDetail',state.token,id);$('adminAssignments').innerHTML=d.assignments.map(a=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(a.committee)}</b><div class="meta">${esc(a.role)} · ${esc(a.scoreCode)} · ${a.points} mata</div></div><button class="btn small edit-asg" data-id="${esc(a.assignmentId)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';document.querySelectorAll('.edit-asg').forEach(b=>b.onclick=()=>openAssignment(d.assignments.find(a=>a.assignmentId===b.dataset.id)))}catch(e){$('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}}
 $('saveJob').onclick=async()=>{const id=$('adminTeacher').value,title=$('jobTitle').value.trim();try{await bridge('jtAdminUpdateTeacher',state.token,id,title);toast('Jawatan hakiki disimpan');state.admin=null;await bootstrapJt();await loadAdmin()}catch(e){alert(errMsg(e))}};
 $('newAssignment').onclick=()=>openAssignment(null);
