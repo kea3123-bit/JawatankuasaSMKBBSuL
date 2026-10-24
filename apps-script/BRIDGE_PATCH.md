@@ -1,52 +1,67 @@
-# Setup bridge untuk JawatankuasaSMKBBSuL
+# Patch eKeberadaan modular untuk JawatankuasaSMKBBSuL
 
-**Tidak perlu cari atau ubah `Bridges.gs`.** Projek eKeberadaan semasa menggunakan `Code.gs` dan tiada bridge sedia ada.
+Baseline yang disokong ialah projek eKeberadaan modular yang mempunyai fail `Bridges.gs`, `00_Core.gs`, `10_Auth.gs`, dan fail-fail modul lain.
 
-Cara yang betul ialah tambah **dua fail baharu** ke projek Apps Script eKeberadaan yang sama:
+## Jangan tambah PagesBridge.gs
 
-1. `CommitteeApi.gs` — API database jawatankuasa/pemberatan.
-2. `PagesBridge.gs` — menerima POST daripada GitHub Pages dan memanggil fungsi login eKeberadaan + fungsi `jt*`.
+`Bridges.gs` sedia ada sudah mempunyai `doPost()` dan transport GitHub Pages. Menambah `PagesBridge.gs` akan mewujudkan duplicate `doPost()` dan boleh merosakkan deployment.
 
-Kedua-dua fail sudah tersedia dalam folder `apps-script/` repo ini.
+## Perubahan yang diperlukan
 
-## Langkah
+### 1. Tambah `CommitteeApi.gs`
 
-1. Buka Google Sheet eKeberadaan.
-2. Extensions → Apps Script.
-3. Klik **+ → Script** dan cipta `CommitteeApi.gs`.
-4. Salin seluruh kandungan `apps-script/CommitteeApi.gs` ke fail itu.
-5. Klik **+ → Script** lagi dan cipta `PagesBridge.gs`.
-6. Salin seluruh kandungan `apps-script/PagesBridge.gs`.
-7. Simpan.
-8. Deploy → Manage deployments → Edit deployment Web App semasa → **New version** → Deploy.
-9. Jangan cipta deployment baharu jika mahu URL `/exec` sedia ada kekal.
+Copy seluruh `apps-script/CommitteeApi.gs` ke projek Apps Script eKeberadaan yang sama.
 
-## Fungsi yang dibenarkan oleh PagesBridge.gs
+Fail ini:
+- guna `requireSessionUser_(token)` yang sedia ada;
+- guna `user.category` dan `user.isAdmin` daripada PENGGUNA;
+- tidak membaca/menulis PENGGUNA secara berasingan;
+- membuka database Jawatankuasa sahaja.
 
-Login/session eKeberadaan:
-- `checkDelimaAccount`
-- `loginWithPin`
-- `setFirstPin`
-- `resumeSession`
-- `resumeTrustedDevice`
-- `logoutApp`
+Database Jawatankuasa:
+`1T4FRkd5IqnNw6PoDYFnXZmX8wjDUF_m2-7dQ2BxaBig`
 
-Jawatankuasa:
-- `jtGetBootstrap`
-- `jtGetTeacherDetail`
-- `jtGetAdminData`
-- `jtAdminUpdatePoint`
-- `jtAdminUpdateTeacher`
-- `jtAdminSaveAssignment`
-- `jtAdminDeactivateAssignment`
+Admin penuh jika:
+- `Kategori = Pengurusan`; atau
+- `PENGGUNA.Pentadbir = TRUE`.
 
-Origin yang dibenarkan:
-- `https://kea3123-bit.github.io`
+AKP biasa tidak boleh login ke sistem Jawatankuasa. AKP dengan `Pentadbir = TRUE` boleh login sebagai Pentadbir Sistem.
 
-## Admin
+### 2. Patch `Bridges.gs`
 
-Admin penuh jika salah satu benar:
-- kategori eKeberadaan = `Pengurusan`; atau
-- tab `PENGGUNA` dalam database eKeberadaan mempunyai `Pentadbir = TRUE`.
+Tambahkan nama berikut ke array dalam `pagesBridgeMethodAllowed_()`:
 
-AKP biasa tidak boleh login ke sistem Jawatankuasa. AKP dengan `Pentadbir = TRUE` dibenarkan sebagai Pentadbir Sistem.
+```js
+'jtGetBootstrap',
+'jtGetTeacherDetail',
+'jtGetAdminData',
+'jtAdminUpdatePoint',
+'jtAdminUpdateTeacher',
+'jtAdminSaveAssignment',
+'jtAdminDeactivateAssignment',
+```
+
+Tambahkan kes berikut di dalam `invokePagesBridgeMethod_()`:
+
+```js
+case 'jtGetBootstrap': return jtGetBootstrap.apply(null, args);
+case 'jtGetTeacherDetail': return jtGetTeacherDetail.apply(null, args);
+case 'jtGetAdminData': return jtGetAdminData.apply(null, args);
+case 'jtAdminUpdatePoint': return jtAdminUpdatePoint.apply(null, args);
+case 'jtAdminUpdateTeacher': return jtAdminUpdateTeacher.apply(null, args);
+case 'jtAdminSaveAssignment': return jtAdminSaveAssignment.apply(null, args);
+case 'jtAdminDeactivateAssignment': return jtAdminDeactivateAssignment.apply(null, args);
+```
+
+Jangan ubah `doPost()`, `getPagesWebOrigins_()`, login, session, attendance atau fungsi eKeberadaan lain.
+
+## Permission Google Sheet
+
+Akaun yang menjalankan/deploy Web App eKeberadaan mesti mempunyai akses Editor kepada database Jawatankuasa kerana API menggunakan `SpreadsheetApp.openById()`.
+
+## Deploy
+
+Selepas simpan:
+Deploy -> Manage deployments -> Edit deployment Web App sedia ada -> New version -> Deploy.
+
+Kekalkan deployment yang sama supaya URL `/exec` tidak berubah.
