@@ -216,6 +216,31 @@ function jtGetTeacherDetail(token,personId){
   const total=assignments.reduce((s,a)=>s+a.points,0);
   return {ok:true,teacher:{personId,name:String(prow[pi.Nama]),jobTitle:String(prow[pi.JawatanHakiki]||''),email:String(prow[pi.Emel]||''),totalPoints:total,taskCount:assignments.length},assignments};
 }
+function jtGetAdminRules(token){
+  const ctx=jtRequireAdmin_(token);
+  const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers);
+  return {ok:true,user:jtPublicUser_(ctx),rules:d.rows.filter(r=>jtBool_(r[ix.Aktif])).map(r=>({
+    code:String(r[ix.KodSkor]),points:Number(r[ix.Mata])||0,
+    source:String(r[ix.Sumber]||''),note:String(r[ix.Catatan]||'')
+  }))};
+}
+function jtGetAdminTeachers(token){
+  const ctx=jtRequireAdmin_(token);
+  const d=jtRows_(JT_SHEETS.PEOPLE), ix=jtIndex_(d.headers);
+  return {ok:true,user:jtPublicUser_(ctx),teachers:d.rows
+    .filter(r=>String(r[ix.Kumpulan])==='Guru'&&jtBool_(r[ix.Aktif]))
+    .map(r=>({id:String(r[ix.PersonID]),name:String(r[ix.Nama]),jobTitle:String(r[ix.JawatanHakiki]||''),email:String(r[ix.Emel]||'')}))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ms'))};
+}
+function jtGetAdminCommittees(token){
+  const ctx=jtRequireAdmin_(token);
+  const d=jtRows_(JT_SHEETS.COMMITTEES), ix=jtIndex_(d.headers);
+  return {ok:true,user:jtPublicUser_(ctx),committees:d.rows
+    .filter(r=>jtBool_(r[ix.Aktif]))
+    .map(r=>({id:String(r[ix.CommitteeID]),code:String(r[ix.KodManual]||''),name:String(r[ix.NamaJawatankuasa]),field:String(r[ix.Bidang]||''),page:String(r[ix.MukaSurat]||'')}))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ms'))};
+}
+
 function jtGetAdminData(token){
   const ctx=jtRequireAdmin_(token);
   const rd=jtRows_(JT_SHEETS.RULES), ri=jtIndex_(rd.headers);
