@@ -61,6 +61,18 @@ Every committee API call first runs the existing eKeberadaan `requireSessionUser
 - Select the score code used for every assignment.
 - Changing a score rule recalculates all displayed totals.
 
+## Teacher roster sync
+
+The eKeberadaan `PENGGUNA` sheet is the master teacher roster.
+
+- Active `Pengurusan` and `PPP` users are automatically synchronized into the Jawatankuasa `GURU` sheet.
+- A newly added active teacher appears even with zero committee assignments and therefore starts with 0 points / 0 tasks.
+- Name matching normalizes common `BT` / `BINTI` variants to avoid duplicate people.
+- Existing committee assignments remain linked by `PersonID`.
+- Teacher rows no longer active in eKeberadaan are preserved for history but set `Aktif=FALSE`.
+- AKP are not included in the teacher ranking; an AKP with eKeberadaan `Pentadbir=TRUE` may still use the admin interface.
+- Existing `JawatanHakiki` values are preserved; eKeberadaan job title is used when creating a new teacher or when the Jawatankuasa job title is blank.
+
 ## User features
 
 - Search and sort all teachers by total points.
