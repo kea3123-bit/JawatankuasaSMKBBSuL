@@ -4,6 +4,8 @@
  * It intentionally reuses requireSessionUser_() from eKeberadaan.
  */
 const JT_DB_ID = '1Rt8U0xvd3B1sXIG_KSXWWWlezSct5cpOXRP2xOZrEYU';
+const JT_EKEB_DB_ID = '18XP3epj-kKTgjeeUdYxIrseyh4y_fJHoY0ygNXrtFZA';
+const JT_EKEB_USERS_SHEET = 'PENGGUNA';
 const JT_SHEETS = Object.freeze({
   PEOPLE:'GURU', RULES:'POINT_RULES', COMMITTEES:'JAWATANKUASA',
   ASSIGNMENTS:'PELANTIKAN', SETTINGS:'SETTINGS', AUDIT:'AUDIT_LOG'
@@ -26,35 +28,92 @@ function jtIndex_(headers){ const x={}; headers.forEach((h,i)=>x[h]=i); return x
 function jtAudit_(user,action,targetType,targetId,details){
   try{ jtSheet_(JT_SHEETS.AUDIT).appendRow([jtNow_(),user.email,user.name,action,targetType,targetId,JSON.stringify(details||{})]); }catch(e){}
 }
-function jtFindPersonForUser_(user, allowBind){
+function jtEkebAccess_(user){
+  const email=String(user&&user.email||'').trim().toLowerCase(), uname=jtNorm_(user&&user.name);
+  if(!email && !uname) return {found:false,active:false,isSystemAdmin:false,category:''};
+
+  const cache=CacheService.getScriptCache();
+  const cacheKey='jt_ekeb_access_'+Utilities.base64EncodeWebSafe(email||uname).slice(0,120);
+  try{
+    const cached=cache.get(cacheKey);
+    if(cached) return JSON.parse(cached);
+  }catch(e){}
+
+  const sh=SpreadsheetApp.openById(JT_EKEB_DB_ID).getSheetByName(JT_EKEB_USERS_SHEET);
+  if(!sh) throw new Error('Sheet PENGGUNA eKeberadaan tidak dijumpai.');
+  const lr=sh.getLastRow();
+  if(lr<2) return {found:false,active:false,isSystemAdmin:false,category:''};
+
+  // PENGGUNA: A=Aktif, B=Nama, C=Emel, D=Kategori, E=Pentadbir
+  const rows=sh.getRange(2,1,lr-1,5).getValues();
+  let access={found:false,active:false,isSystemAdmin:false,category:''};
+  rows.some(r=>{
+    const rowEmail=String(r[2]||'').trim().toLowerCase();
+    const rowName=jtNorm_(r[1]);
+    if((email && rowEmail===email) || (!email && uname && rowName===uname)){
+      access={
+        found:true,
+        active:jtBool_(r[0]),
+        isSystemAdmin:jtBool_(r[4]),
+        category:String(r[3]||''),
+        name:String(r[1]||''),
+        email:rowEmail
+      };
+      return true;
+    }
+    return false;
+  });
+  try{ cache.put(cacheKey,JSON.stringify(access),120); }catch(e){}
+  return access;
+}
+function jtFindPersonForUser_(user, allowBind, allowAkp){
   const d=jtRows_(JT_SHEETS.PEOPLE), ix=jtIndex_(d.headers);
   const email=String(user.email||'').trim().toLowerCase(), uname=jtNorm_(user.name);
   let found=null, rowNo=0;
   d.rows.some((r,i)=>{
     if(!jtBool_(r[ix.Aktif])) return false;
-    if(String(r[ix.Kumpulan]||'')!=='Guru') return false;
+    const group=String(r[ix.Kumpulan]||'');
+    if(group!=='Guru' && !(allowAkp && group==='AKP')) return false;
     const re=String(r[ix.Emel]||'').trim().toLowerCase();
     const rn=jtNorm_(r[ix.NormalizedName]||r[ix.Nama]);
     if((re && re===email) || (!re && rn===uname)){ found=r; rowNo=i+2; return true; }
     return false;
   });
-  if(!found) throw new Error('Akaun ini tidak dipadankan dengan senarai guru sistem. Hubungi pentadbir.');
+  if(!found) throw new Error(allowAkp
+    ? 'Akaun ini tidak dipadankan dengan senarai Guru/AKP sistem. Hubungi pentadbir.'
+    : 'Akaun ini tidak dipadankan dengan senarai guru sistem. Hubungi pentadbir.');
   const currentEmail=String(found[ix.Emel]||'').trim().toLowerCase();
-  if(currentEmail && currentEmail!==email) throw new Error('Akaun DELIMa tidak sepadan dengan rekod guru.');
+  if(currentEmail && currentEmail!==email) throw new Error('Akaun DELIMa tidak sepadan dengan rekod pengguna.');
   if(!currentEmail && allowBind){
     d.sh.getRange(rowNo,ix.Emel+1).setValue(email);
     if(ix.KategoriLogin!==undefined) d.sh.getRange(rowNo,ix.KategoriLogin+1).setValue(String(user.category||''));
-    jtAudit_(user,'BIND_LOGIN','GURU',String(found[ix.PersonID]||''),{email});
+    jtAudit_(user,'BIND_LOGIN',String(found[ix.Kumpulan]||'GURU'),String(found[ix.PersonID]||''),{email});
     found[ix.Emel]=email;
   }
   return jtObj_(d.headers,found);
 }
 function jtRequireUser_(token){
   const user=requireSessionUser_(token);
-  const person=jtFindPersonForUser_(user,true);
-  return {user,person,isAdmin:jtNorm_(user.category)==='PENGURUSAN'};
+  const ekeb=jtEkebAccess_(user);
+  if(!ekeb.found || !ekeb.active) throw new Error('Akaun eKeberadaan tidak aktif atau tidak dijumpai.');
+  const isManagement=jtNorm_(user.category||ekeb.category)==='PENGURUSAN';
+  const isSystemAdmin=!!ekeb.isSystemAdmin;
+  const person=jtFindPersonForUser_(user,true,isSystemAdmin);
+  return {
+    user,
+    person,
+    ekeb,
+    isManagement,
+    isSystemAdmin,
+    isAdmin:isManagement||isSystemAdmin,
+    adminSource:isManagement&&isSystemAdmin?'Pengurusan + Pentadbir Sistem':(isSystemAdmin?'Pentadbir Sistem':(isManagement?'Pengurusan':''))
+  };
 }
-function jtRequireAdmin_(token){ const ctx=jtRequireUser_(token); if(!ctx.isAdmin) throw new Error('Akses ini hanya untuk kumpulan Pengurusan.'); return ctx; }
+function jtRequireAdmin_(token){
+  const ctx=jtRequireUser_(token);
+  if(!ctx.isAdmin) throw new Error('Akses ini hanya untuk Pengurusan atau Pentadbir Sistem.');
+  return ctx;
+}
 
 function jtRuleMap_(){
   const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers), map={};
@@ -74,7 +133,7 @@ function jtRebuildTeacherStats_(){
   const vals=d.rows.map(r=>{const s=byId[String(r[ix.PersonID])]; return [s?s.points:0,s?s.count:0];});
   if(vals.length) d.sh.getRange(2,ix.TotalMata+1,vals.length,2).setValues(vals);
 }
-function jtPublicUser_(ctx){ return {name:ctx.user.name,email:ctx.user.email,category:ctx.user.category,jobTitle:ctx.person.JawatanHakiki||ctx.user.jobTitle||'',personId:ctx.person.PersonID,isAdmin:ctx.isAdmin}; }
+function jtPublicUser_(ctx){ return {name:ctx.user.name,email:ctx.user.email,category:ctx.user.category,jobTitle:ctx.person.JawatanHakiki||ctx.user.jobTitle||'',personId:ctx.person.PersonID,group:ctx.person.Kumpulan||'Guru',isAdmin:ctx.isAdmin,isManagement:!!ctx.isManagement,isSystemAdmin:!!ctx.isSystemAdmin,adminSource:ctx.adminSource||''}; }
 
 function jtGetBootstrap(token){
   const ctx=jtRequireUser_(token), stats=jtTeacherStats_();
