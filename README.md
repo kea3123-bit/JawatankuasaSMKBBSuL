@@ -76,6 +76,10 @@ The eKeberadaan `PENGGUNA` sheet is the master teacher roster.
 - Existing `JawatanHakiki` values are preserved; eKeberadaan job title is used when creating a new teacher or when the Jawatankuasa job title is blank.
 - Roster sync is cached for 10 minutes during normal API use. Admins can explicitly run **Sync eKeberadaan** from Guru & Pelantikan when an immediate refresh is needed.
 
+## Universal search
+
+The main Guru & Mata page supports three search modes: **Automatik**, **Jawatankuasa**, and **Individu**. The search field matches teacher names, jawatan hakiki, committee names, Bidang, and assignment roles. Search data is loaded lazily on first use so initial page loading stays light. In Automatik mode, a committee-title match switches to a full committee view with all active members; name/role searches remain in individual view.
+
 ## User features
 
 - Search and sort all teachers by total points.
