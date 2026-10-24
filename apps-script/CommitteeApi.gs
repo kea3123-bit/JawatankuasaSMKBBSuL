@@ -259,30 +259,72 @@ function jtNextCommitteeId_(rows,ix){
 function jtAdminSaveCommittee(token,payload){
   const ctx=jtRequireAdmin_(token);
   payload=payload||{};
+  const id=String(payload.id||payload.committeeId||'').trim();
   const name=String(payload.name||'').trim();
   const code=String(payload.code||'').trim();
   const field=String(payload.field||'').trim();
-  const page=String(payload.page||'').trim();
   if(!name) throw new Error('Nama jawatankuasa diperlukan.');
+  if(!field) throw new Error('Bidang diperlukan.');
 
   const d=jtRows_(JT_SHEETS.COMMITTEES), ix=jtIndex_(d.headers);
   const normalized=jtNorm_(name);
-  const duplicate=d.rows.find(r=>jtNorm_(r[ix.NamaJawatankuasa])===normalized && jtBool_(r[ix.Aktif]));
-  if(duplicate) throw new Error('Jawatankuasa ini sudah wujud.');
+  const duplicate=d.rows.find(r=>
+    jtBool_(r[ix.Aktif]) &&
+    jtNorm_(r[ix.NamaJawatankuasa])===normalized &&
+    String(r[ix.CommitteeID]||'')!==id
+  );
+  if(duplicate) throw new Error('Nama jawatankuasa ini sudah wujud.');
 
-  const id=jtNextCommitteeId_(d.rows,ix);
+  if(id){
+    let rowNo=0,before=null;
+    d.rows.some((r,i)=>{
+      if(String(r[ix.CommitteeID]||'')===id){
+        rowNo=i+2;
+        before=jtObj_(d.headers,r);
+        return true;
+      }
+      return false;
+    });
+    if(!rowNo) throw new Error('Jawatankuasa tidak dijumpai.');
+
+    d.sh.getRange(rowNo,ix.KodManual+1).setValue(code);
+    d.sh.getRange(rowNo,ix.NamaJawatankuasa+1).setValue(name);
+    d.sh.getRange(rowNo,ix.Bidang+1).setValue(field);
+
+    const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers);
+    let assignmentsUpdated=0;
+    ad.rows.forEach((r,i)=>{
+      if(String(r[ai.CommitteeID]||'')===id){
+        const rn=i+2;
+        ad.sh.getRange(rn,ai.Jawatankuasa+1).setValue(name);
+        if(ai.Bidang!==undefined)ad.sh.getRange(rn,ai.Bidang+1).setValue(field);
+        if(ai.UpdatedAt!==undefined)ad.sh.getRange(rn,ai.UpdatedAt+1).setValue(jtNow_());
+        if(ai.UpdatedBy!==undefined)ad.sh.getRange(rn,ai.UpdatedBy+1).setValue(ctx.user.email);
+        assignmentsUpdated++;
+      }
+    });
+
+    jtAudit_(ctx.user,'UPDATE_COMMITTEE','JAWATANKUASA',id,{
+      before,
+      after:{CommitteeID:id,KodManual:code,NamaJawatankuasa:name,Bidang:field},
+      assignmentsUpdated
+    });
+    return {ok:true,mode:'update',committee:{id,code,name,field},assignmentsUpdated};
+  }
+
+  const newId=jtNextCommitteeId_(d.rows,ix);
   const values={
-    CommitteeID:id,
+    CommitteeID:newId,
     KodManual:code,
     NamaJawatankuasa:name,
     Bidang:field,
-    MukaSurat:page,
+    MukaSurat:'',
     Aktif:true
   };
   const row=d.headers.map(h=>values[h]===undefined?'':values[h]);
   d.sh.appendRow(row);
-  jtAudit_(ctx.user,'ADD_COMMITTEE','JAWATANKUASA',id,{after:values});
-  return {ok:true,committee:{id,code,name,field,page}};
+  jtAudit_(ctx.user,'ADD_COMMITTEE','JAWATANKUASA',newId,{after:values});
+  return {ok:true,mode:'add',committee:{id:newId,code,name,field}};
 }
 
 function jtAdminUpdatePoint(token,code,points,newName){
