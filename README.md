@@ -15,7 +15,7 @@ Sistem pemberatan tugas guru SMK Bandar Baru Sungai Lalang.
 
 Spreadsheet ID:
 
-`1Rt8U0xvd3B1sXIG_KSXWWWlezSct5cpOXRP2xOZrEYU`
+`1T4FRkd5IqnNw6PoDYFnXZmX8wjDUF_m2-7dQ2BxaBig`
 
 Tabs:
 - `GURU` — 59 Guru + 6 AKP, login binding, total points
