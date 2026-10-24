@@ -3,7 +3,7 @@
  * Add this file to the existing eKeberadaan Apps Script project.
  * It intentionally reuses requireSessionUser_() from eKeberadaan.
  */
-const JT_DB_ID = '1Rt8U0xvd3B1sXIG_KSXWWWlezSct5cpOXRP2xOZrEYU';
+const JT_DB_ID = '1T4FRkd5IqnNw6PoDYFnXZmX8wjDUF_m2-7dQ2BxaBig';
 const JT_EKEB_DB_ID = '18XP3epj-kKTgjeeUdYxIrseyh4y_fJHoY0ygNXrtFZA';
 const JT_EKEB_USERS_SHEET = 'PENGGUNA';
 const JT_SHEETS = Object.freeze({
