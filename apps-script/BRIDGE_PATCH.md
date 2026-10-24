@@ -34,6 +34,9 @@ Tambahkan nama berikut ke array dalam `pagesBridgeMethodAllowed_()`:
 ```js
 'jtGetBootstrap',
 'jtGetTeacherDetail',
+'jtGetAdminRules',
+'jtGetAdminTeachers',
+'jtGetAdminCommittees',
 'jtGetAdminData',
 'jtAdminUpdatePoint',
 'jtAdminUpdateTeacher',
@@ -47,6 +50,9 @@ Tambahkan kes berikut di dalam `invokePagesBridgeMethod_()`:
 ```js
 case 'jtGetBootstrap': return jtGetBootstrap.apply(null, args);
 case 'jtGetTeacherDetail': return jtGetTeacherDetail.apply(null, args);
+case 'jtGetAdminRules': return jtGetAdminRules.apply(null, args);
+case 'jtGetAdminTeachers': return jtGetAdminTeachers.apply(null, args);
+case 'jtGetAdminCommittees': return jtGetAdminCommittees.apply(null, args);
 case 'jtGetAdminData': return jtGetAdminData.apply(null, args);
 case 'jtAdminUpdatePoint': return jtAdminUpdatePoint.apply(null, args);
 case 'jtAdminUpdateTeacher': return jtAdminUpdateTeacher.apply(null, args);
