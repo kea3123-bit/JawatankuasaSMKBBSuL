@@ -55,11 +55,13 @@ Every committee API call first runs the existing eKeberadaan `requireSessionUser
 
 ## Admin features
 
-- Edit points for every score code.
+- Edit/rename every jawatan / nilai mata with impact confirmation before cascading to active assignments.
 - Edit a teacher's jawatan hakiki.
-- Add/edit/deactivate committee assignments for each teacher.
-- Select the score code used for every assignment.
-- Changing a score rule recalculates all displayed totals.
+- Add/edit/deactivate committee assignments for each teacher, with Undo after deactivation.
+- Assignment committee name and Bidang are always derived from the master `JAWATANKUASA` row by `CommitteeID`.
+- Assignment `Peranan` and `KodSkor` are always stored with the same canonical jawatan name.
+- Changing a score rule recalculates displayed totals and refreshes the teacher list without reloading the whole app.
+- Admin settings are split into lazy-loaded pages for Nilai Mata, Guru & Pelantikan, and Jawatankuasa.
 
 ## Teacher roster sync
 
@@ -72,10 +74,11 @@ The eKeberadaan `PENGGUNA` sheet is the master teacher roster.
 - Teacher rows no longer active in eKeberadaan are preserved for history but set `Aktif=FALSE`.
 - AKP are not included in the teacher ranking; an AKP with eKeberadaan `Pentadbir=TRUE` may still use the admin interface.
 - Existing `JawatanHakiki` values are preserved; eKeberadaan job title is used when creating a new teacher or when the Jawatankuasa job title is blank.
+- Roster sync is cached for 10 minutes during normal API use. Admins can explicitly run **Sync eKeberadaan** from Guru & Pelantikan when an immediate refresh is needed.
 
 ## User features
 
 - Search and sort all teachers by total points.
 - See total assignments and total weighted score.
-- Click a teacher to see every active committee/task, role, score code and points.
+- Click a teacher to see every active committee/task, Bidang, role and points.
 - Existing eKeberadaan session/trusted-device credentials are reused where available.
