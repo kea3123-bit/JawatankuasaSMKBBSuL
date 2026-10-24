@@ -39,6 +39,7 @@ Tambahkan nama berikut ke array dalam `pagesBridgeMethodAllowed_()`:
 'jtAdminUpdateTeacher',
 'jtAdminSaveAssignment',
 'jtAdminDeactivateAssignment',
+'jtAdminSaveCommittee',
 ```
 
 Tambahkan kes berikut di dalam `invokePagesBridgeMethod_()`:
@@ -51,6 +52,7 @@ case 'jtAdminUpdatePoint': return jtAdminUpdatePoint.apply(null, args);
 case 'jtAdminUpdateTeacher': return jtAdminUpdateTeacher.apply(null, args);
 case 'jtAdminSaveAssignment': return jtAdminSaveAssignment.apply(null, args);
 case 'jtAdminDeactivateAssignment': return jtAdminDeactivateAssignment.apply(null, args);
+case 'jtAdminSaveCommittee': return jtAdminSaveCommittee.apply(null, args);
 ```
 
 Jangan ubah `doPost()`, `getPagesWebOrigins_()`, login, session, attendance atau fungsi eKeberadaan lain.
