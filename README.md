@@ -8,8 +8,8 @@ Sistem pemberatan tugas guru SMK Bandar Baru Sungai Lalang.
 - Database: Google Sheets
 - Authentication: existing eKeberadaan DELIMa + 6-digit PIN
 - API: `apps-script/CommitteeApi.gs` added to the existing eKeberadaan Apps Script project
-- Admin role: eKeberadaan category **Pengurusan**
-- Login access: **Guru sahaja**. AKP records remain in the database for reporting/reference.
+- Admin role: eKeberadaan category **Pengurusan** OR `PENGGUNA.Pentadbir = TRUE` in the eKeberadaan database.
+- Login access: normal users are **Guru sahaja**. An AKP account may enter only when it is marked `Pentadbir = TRUE` (Pentadbir Sistem).
 
 ## Google Sheet database
 
@@ -43,10 +43,12 @@ The supplied eKeberadaan bridge already allows `https://kea3123-bit.github.io` b
 
 Every committee API call first runs the existing eKeberadaan `requireSessionUser_(token)`.
 
-- Only an active eKeberadaan account whose normalized name matches an active row in `GURU` with `Kumpulan=Guru` may enter.
-- On first successful match, the DELIMa email is bound to that teacher row.
-- After binding, a different email cannot claim the same teacher row.
-- Admin methods additionally require `user.category === 'Pengurusan'`.
+- The system checks the live eKeberadaan spreadsheet `18XP3epj-kKTgjeeUdYxIrseyh4y_fJHoY0ygNXrtFZA`, tab `PENGGUNA`.
+- Normal access requires an active eKeberadaan account matched to an active `GURU` row with `Kumpulan=Guru`.
+- If `PENGGUNA.Pentadbir = TRUE`, the account is treated as **Pentadbir Sistem** and may also match an AKP row.
+- On first successful match, the DELIMa email is bound to that `GURU`/AKP row.
+- After binding, a different email cannot claim the same person row.
+- Admin methods require either `user.category === 'Pengurusan'` or `PENGGUNA.Pentadbir = TRUE`.
 - Admin writes are recorded in `AUDIT_LOG`.
 - The Google Sheet does not need to be public.
 
