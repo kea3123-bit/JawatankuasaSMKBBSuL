@@ -56,10 +56,10 @@
   <section id="adminCommitteesPage" class="admin-subpage hidden">
     <div class="section-head"><div class="admin-back"><button class="btn small admin-back-btn">← Kembali</button><div><h2>Pengurusan Jawatankuasa</h2><p>Hanya senarai jawatankuasa dimuatkan pada halaman ini.</p></div></div><button class="btn small" id="refreshCommittees">Muat semula</button></div>
     <div class="panel"><div class="panel-body">
+      <input id="editCommitteeId" type="hidden">
       <div class="field"><label>Nama Jawatankuasa</label><input id="newCommitteeName" placeholder="Contoh: Jawatankuasa Program Kecemerlangan"></div>
-      <div class="form-grid"><div class="field"><label>Kod Manual</label><input id="newCommitteeCode" placeholder="Contoh: JM30"></div><div class="field"><label>Bidang</label><input id="newCommitteeField" placeholder="Contoh: HEM"></div></div>
-      <div class="field"><label>Muka Surat</label><input id="newCommitteePage" placeholder="Optional"></div>
-      <button class="btn primary" id="addCommittee">+ Tambah Jawatankuasa</button>
+      <div class="form-grid"><div class="field"><label>Kod Manual</label><input id="newCommitteeCode" placeholder="Contoh: JM30"></div><div class="field"><label>Bidang</label><input id="newCommitteeField" placeholder="Contoh: Hal Ehwal Murid"></div></div>
+      <div style="display:flex;gap:8px"><button class="btn primary" id="addCommittee">+ Tambah Jawatankuasa</button><button class="btn hidden" id="cancelCommitteeEdit">Batal</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:9px"><input id="committeeSearchAdmin" type="search" placeholder="Cari jawatankuasa..." style="flex:1;padding:9px;border:1px solid var(--line);border-radius:9px"><span class="pill" id="committeeCountAdmin">0</span></div>
       <div id="committeeListAdmin"><div class="loading">Pilih modul untuk memuatkan data.</div></div>
@@ -226,23 +226,47 @@ async function loadAdminCommittees(force=false){
   }
   renderCommitteesAdmin();
 }
+function resetCommitteeForm(){
+  $('editCommitteeId').value='';
+  $('newCommitteeName').value='';
+  $('newCommitteeCode').value='';
+  $('newCommitteeField').value='';
+  $('addCommittee').textContent='+ Tambah Jawatankuasa';
+  $('cancelCommitteeEdit').classList.add('hidden');
+}
+function editCommittee(id){
+  const a=ensureAdminState(),x=(a.committees||[]).find(v=>v.id===id);
+  if(!x)return;
+  $('editCommitteeId').value=x.id;
+  $('newCommitteeName').value=x.name||'';
+  $('newCommitteeCode').value=x.code||'';
+  $('newCommitteeField').value=x.field||'';
+  $('addCommittee').textContent='Simpan Perubahan';
+  $('cancelCommitteeEdit').classList.remove('hidden');
+  $('newCommitteeName').focus();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function renderCommitteesAdmin(){
   const a=ensureAdminState(),q=($('committeeSearchAdmin')?.value||'').trim().toLowerCase();
   const all=[...(a.committees||[])].sort((x,y)=>x.name.localeCompare(y.name,'ms'));
   const list=all.filter(x=>!q||(x.name+' '+x.code+' '+x.field).toLowerCase().includes(q));
   $('committeeCountAdmin').textContent=all.length;
-  $('committeeListAdmin').innerHTML=list.slice(0,100).map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.name)}</b><div class="meta">${x.code?esc(x.code)+' · ':''}${esc(x.field||'Tiada bidang')}${x.page?' · hlm. '+esc(x.page):''}</div></div><span class="pill">${esc(x.id)}</span></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
+  $('committeeListAdmin').innerHTML=list.slice(0,100).map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.name)}</b><div class="meta"><strong>Bidang:</strong> ${esc(x.field||'Belum ditetapkan')}${x.code?' · '+esc(x.code):''}</div></div><button class="btn small edit-committee" data-id="${esc(x.id)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
+  document.querySelectorAll('.edit-committee').forEach(b=>b.onclick=()=>editCommittee(b.dataset.id));
 }
 $('committeeSearchAdmin').oninput=()=>state.admin?.committees&&renderCommitteesAdmin();
 $('refreshCommittees').onclick=()=>loadAdminCommittees(true);
+$('cancelCommitteeEdit').onclick=resetCommitteeForm;
 $('addCommittee').onclick=async()=>{
-  const payload={name:$('newCommitteeName').value.trim(),code:$('newCommitteeCode').value.trim(),field:$('newCommitteeField').value.trim(),page:$('newCommitteePage').value.trim()};
+  const id=$('editCommitteeId').value.trim();
+  const payload={id,name:$('newCommitteeName').value.trim(),code:$('newCommitteeCode').value.trim(),field:$('newCommitteeField').value.trim()};
   if(!payload.name)return alert('Masukkan nama jawatankuasa.');
+  if(!payload.field)return alert('Masukkan Bidang.');
   const btn=$('addCommittee');btn.disabled=true;
   try{
-    await bridge('jtAdminSaveCommittee',state.token,payload);
-    toast('Jawatankuasa baharu ditambah');
-    $('newCommitteeName').value='';$('newCommitteeCode').value='';$('newCommitteeField').value='';$('newCommitteePage').value='';
+    const res=await bridge('jtAdminSaveCommittee',state.token,payload);
+    toast(id?('Jawatankuasa dikemas kini · '+(res.assignmentsUpdated||0)+' pelantikan diselaras'):'Jawatankuasa baharu ditambah');
+    resetCommitteeForm();
     ensureAdminState().committees=null;
     await loadAdminCommittees();
   }catch(e){alert(errMsg(e))}finally{btn.disabled=false}
