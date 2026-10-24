@@ -69,7 +69,7 @@
 </main></div>
 
 <div id="detailModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi"><div><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div><div><b id="detailReview">0</b><span>Perlu semakan</span></div></div><div id="taskList"></div></div></aside></div>
-<div id="editModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Jawatankuasa / tugas</label><select id="committeeSelect"></select></div><div class="field"><label>Peranan / jawatan</label><input id="roleInput" placeholder="Contoh: Setiausaha, AJK, Guru Kelas"></div><div class="field"><label>Kod skor</label><select id="scoreSelect"></select></div><div class="form-grid"><div class="field"><label>Bidang</label><input id="fieldInput"></div><div class="field"><label>Muka surat</label><input id="pageInput"></div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
+<div id="editModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Jawatankuasa / tugas</label><select id="committeeSelect"></select></div><div class="field"><label>Jawatan / Nilai Mata</label><select id="scoreSelect"></select><div class="sub" style="margin-top:5px">Nama ini disimpan sebagai Peranan dan KodSkor yang sama.</div></div><div class="form-grid"><div class="field"><label>Bidang</label><input id="fieldInput"></div><div class="field"><label>Muka surat</label><input id="pageInput"></div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
 <div id="toast" class="toast"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec';
@@ -108,7 +108,7 @@ $('logoutBtn').onclick=async()=>{try{if(state.token)await bridge('logoutApp',sta
 function renderUser(){const u=state.boot.user;$('whoName').textContent=u.name;const adminLabel=u.isAdmin?(u.adminSource||'Pentadbir'):'';$('whoRole').textContent=(u.category||u.group||'')+(adminLabel?' · '+adminLabel:'');$('adminTab').classList.toggle('hidden',!u.isAdmin)}
 function renderTeachers(){let a=[...state.teachers],q=$('teacherSearch').value.trim().toLowerCase(),sort=$('teacherSort').value;if(q)a=a.filter(x=>(x.name+' '+x.jobTitle).toLowerCase().includes(q));if(sort==='points-desc')a.sort((x,y)=>y.points-x.points||x.name.localeCompare(y.name));if(sort==='points-asc')a.sort((x,y)=>x.points-y.points||x.name.localeCompare(y.name));if(sort==='name')a.sort((x,y)=>x.name.localeCompare(y.name,'ms'));$('teacherBody').innerHTML=a.map((x,i)=>`<tr class="teacher-row" data-id="${esc(x.id)}"><td><div class="rank">${i+1}</div></td><td><div class="name">${esc(x.name)}</div><div class="sub">Klik untuk lihat semua tugas</div></td><td>${esc(x.jobTitle||'')}</td><td>${x.count}</td><td><span class="points">${x.points}</span></td></tr>`).join('');$('teacherEmpty').classList.toggle('hidden',a.length>0);const all=state.teachers;$('kpiTeachers').textContent=all.length;$('kpiHighest').textContent=all.length?Math.max(...all.map(x=>x.points)):0;$('kpiAvg').textContent=all.length?(all.reduce((s,x)=>s+x.points,0)/all.length).toFixed(1):'0';$('kpiTasks').textContent=all.reduce((s,x)=>s+x.count,0);document.querySelectorAll('.teacher-row').forEach(r=>r.onclick=()=>openTeacher(r.dataset.id))}
 $('teacherSearch').oninput=renderTeachers;$('teacherSort').onchange=renderTeachers;
-async function openTeacher(id){$('detailModal').classList.remove('hidden');$('detailName').textContent='Memuatkan…';$('taskList').innerHTML='<div class="loading">Memuatkan tugas…</div>';try{const d=await bridge('jtGetTeacherDetail',state.token,id);state.currentTeacher=d;$('detailName').textContent=d.teacher.name;$('detailJob').textContent=d.teacher.jobTitle;$('detailPoints').textContent=d.teacher.totalPoints;$('detailTasks').textContent=d.teacher.taskCount;$('detailReview').textContent=d.assignments.filter(x=>x.needsReview).length;$('taskList').innerHTML=d.assignments.map(a=>`<div class="task"><div class="task-title">${esc(a.committee)}</div><div class="task-row"><span>${esc(a.role)} · <span class="pill">${esc(a.scoreCode)}</span>${a.needsReview?' <span class="pill review">Semakan</span>':''}</span><span class="task-score">${a.points} mata</span></div>${a.mappingNote?`<div class="sub" style="margin-top:6px">${esc(a.mappingNote)}</div>`:''}</div>`).join('')||'<div class="empty">Tiada pelantikan aktif.</div>'}catch(e){$('detailName').textContent='Ralat';$('taskList').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}}
+async function openTeacher(id){$('detailModal').classList.remove('hidden');$('detailName').textContent='Memuatkan…';$('taskList').innerHTML='<div class="loading">Memuatkan tugas…</div>';try{const d=await bridge('jtGetTeacherDetail',state.token,id);state.currentTeacher=d;$('detailName').textContent=d.teacher.name;$('detailJob').textContent=d.teacher.jobTitle;$('detailPoints').textContent=d.teacher.totalPoints;$('detailTasks').textContent=d.teacher.taskCount;$('detailReview').textContent=d.assignments.filter(x=>x.needsReview).length;$('taskList').innerHTML=d.assignments.map(a=>`<div class="task"><div class="task-title">${esc(a.committee)}</div><div class="task-row"><span>${esc(a.role)}${a.needsReview?' <span class="pill review">Semakan</span>':''}</span><span class="task-score">${a.points} mata</span></div>${a.mappingNote?`<div class="sub" style="margin-top:6px">${esc(a.mappingNote)}</div>`:''}</div>`).join('')||'<div class="empty">Tiada pelantikan aktif.</div>'}catch(e){$('detailName').textContent='Ralat';$('taskList').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}}
 $('closeDetail').onclick=()=> $('detailModal').classList.add('hidden');$('detailModal').onclick=e=>{if(e.target===$('detailModal'))$('detailModal').classList.add('hidden')};
 
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{
@@ -154,14 +154,21 @@ async function loadAdminRules(force=false){
 function renderRules(){
   const a=ensureAdminState(),q=$('ruleSearch').value.trim().toLowerCase();
   const rules=(a.rules||[]).filter(r=>!q||r.code.toLowerCase().includes(q));
-  $('rulesList').innerHTML=rules.map(r=>`<div class="rule-row"><div><b>${esc(r.code)}</b><div class="sub">${esc(r.source||'')}</div></div><input type="number" min="0" max="100" step="1" value="${r.points}" data-rule="${esc(r.code)}"><button class="btn small save-rule" data-rule="${esc(r.code)}">Simpan</button></div>`).join('')||'<div class="empty">Tiada kod skor.</div>';
+  $('rulesList').innerHTML=rules.map(r=>`<div class="rule-row"><input type="text" value="${esc(r.code)}" data-rule-name="${esc(r.code)}" aria-label="Nama jawatan"><input type="number" min="0" max="100" step="1" value="${r.points}" data-rule-points="${esc(r.code)}" aria-label="Mata"><button class="btn small save-rule" data-rule="${esc(r.code)}">Simpan</button></div>`).join('')||'<div class="empty">Tiada jawatan.</div>';
   document.querySelectorAll('.save-rule').forEach(b=>b.onclick=async()=>{
-    const input=document.querySelector(`input[data-rule="${CSS.escape(b.dataset.rule)}"]`);
+    const oldName=b.dataset.rule;
+    const nameInput=document.querySelector(`input[data-rule-name="${CSS.escape(oldName)}"]`);
+    const pointsInput=document.querySelector(`input[data-rule-points="${CSS.escape(oldName)}"]`);
+    const newName=(nameInput?.value||'').trim();
+    const newPoints=Number(pointsInput?.value);
+    if(!newName)return alert('Nama jawatan diperlukan.');
     b.disabled=true;
     try{
-      await bridge('jtAdminUpdatePoint',state.token,b.dataset.rule,Number(input.value));
-      toast('Mata dikemas kini');
-      const row=a.rules.find(x=>x.code===b.dataset.rule);if(row)row.points=Number(input.value);
+      const res=await bridge('jtAdminUpdatePoint',state.token,oldName,newPoints,newName);
+      toast(res.assignmentsUpdated?('Jawatan dikemas kini · '+res.assignmentsUpdated+' pelantikan diselaras'):'Jawatan dikemas kini');
+      const row=a.rules.find(x=>x.code===oldName);
+      if(row){row.code=newName;row.points=newPoints;row.source='';row.note=''}
+      a.rules.sort((x,y)=>y.points-x.points||x.code.localeCompare(y.code,'ms'));
       await bootstrapJt();
       renderRules();
     }catch(e){alert(errMsg(e))}finally{b.disabled=false}
@@ -195,7 +202,7 @@ async function loadAdminTeacher(){
   $('adminAssignments').innerHTML='<div class="loading">Memuatkan pelantikan guru…</div>';
   try{
     const d=await bridge('jtGetTeacherDetail',state.token,id);
-    $('adminAssignments').innerHTML=d.assignments.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.committee)}</b><div class="meta">${esc(x.role)} · ${esc(x.scoreCode)} · ${x.points} mata</div></div><button class="btn small edit-asg" data-id="${esc(x.assignmentId)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';
+    $('adminAssignments').innerHTML=d.assignments.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.committee)}</b><div class="meta">${esc(x.role)} · ${x.points} mata</div></div><button class="btn small edit-asg" data-id="${esc(x.assignmentId)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';
     document.querySelectorAll('.edit-asg').forEach(b=>b.onclick=()=>openAssignment(d.assignments.find(x=>x.assignmentId===b.dataset.id)));
   }catch(e){$('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}
 }
@@ -255,7 +262,6 @@ async function openAssignment(x){
   const t=(a.teachers||[]).find(v=>v.id===$('adminTeacher').value);
   $('editTeacherName').textContent=t?.name||'';
   $('assignmentId').value=x?.assignmentId||'';
-  $('roleInput').value=x?.role||'';
   $('fieldInput').value=x?.field||'';
   $('pageInput').value=x?.page||'';
   $('noteInput').value=x?.note||'';
@@ -277,7 +283,7 @@ $('saveAssignment').onclick=async()=>{
   const o=$('committeeSelect').selectedOptions[0],payload={
     assignmentId:$('assignmentId').value||'',personId:$('adminTeacher').value,
     committeeId:$('committeeSelect').value,committee:o?.dataset.name||o?.textContent||'',
-    role:$('roleInput').value.trim(),scoreCode:$('scoreSelect').value,
+    scoreCode:$('scoreSelect').value,
     field:$('fieldInput').value.trim(),page:$('pageInput').value.trim(),
     note:$('noteInput').value.trim(),type:'Terus'
   };
