@@ -73,7 +73,7 @@
 </main></div>
 
 <div id="detailModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi"><div><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div><div><b id="detailReview">0</b><span>Perlu semakan</span></div></div><div id="taskList"></div></div></aside></div>
-<div id="editModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Jawatankuasa / tugas</label><select id="committeeSelect"></select></div><div class="field"><label>Jawatan / Nilai Mata</label><select id="scoreSelect"></select><div class="sub" style="margin-top:5px">Nama ini disimpan sebagai Peranan dan KodSkor yang sama.</div></div><div class="form-grid"><div class="field"><label>Bidang</label><input id="fieldInput"></div><div class="field"><label>Muka surat</label><input id="pageInput"></div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
+<div id="editModal" class="modal hidden"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Jawatankuasa / tugas</label><select id="committeeSelect"></select></div><div class="field"><label>Jawatan / Nilai Mata</label><select id="scoreSelect"></select><div class="sub" style="margin-top:5px">Nama ini disimpan sebagai Peranan dan KodSkor yang sama.</div></div><div class="field"><label>Bidang</label><input id="fieldInput"></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
 <div id="toast" class="toast"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec';
@@ -299,9 +299,8 @@ async function openAssignment(x){
   $('editTeacherName').textContent=t?.name||'';
   $('assignmentId').value=x?.assignmentId||'';
   $('fieldInput').value=x?.field||'';
-  $('pageInput').value=x?.page||'';
   $('noteInput').value=x?.note||'';
-  $('committeeSelect').innerHTML=(a.committees||[]).map(v=>`<option value="${esc(v.id)}" data-name="${esc(v.name)}" data-field="${esc(v.field)}" data-page="${esc(v.page)}">${esc(v.name)}</option>`).join('');
+  $('committeeSelect').innerHTML=(a.committees||[]).map(v=>`<option value="${esc(v.id)}" data-name="${esc(v.name)}" data-field="${esc(v.field)}">${esc(v.name)}</option>`).join('');
   if(x?.committeeId)$('committeeSelect').value=x.committeeId;
   else if(x?.committee){const op=[...$('committeeSelect').options].find(o=>o.dataset.name===x.committee);if(op)op.selected=true}
   $('scoreSelect').innerHTML=(a.rules||[]).map(v=>`<option value="${esc(v.code)}">${esc(v.code)} — ${v.points}</option>`).join('');
@@ -313,14 +312,13 @@ async function openAssignment(x){
 $('committeeSelect').onchange=()=>{
   const o=$('committeeSelect').selectedOptions[0];
   if(!$('fieldInput').value)$('fieldInput').value=o?.dataset.field||'';
-  if(!$('pageInput').value)$('pageInput').value=o?.dataset.page||'';
 };
 $('saveAssignment').onclick=async()=>{
   const o=$('committeeSelect').selectedOptions[0],payload={
     assignmentId:$('assignmentId').value||'',personId:$('adminTeacher').value,
     committeeId:$('committeeSelect').value,committee:o?.dataset.name||o?.textContent||'',
     scoreCode:$('scoreSelect').value,
-    field:$('fieldInput').value.trim(),page:$('pageInput').value.trim(),
+    field:$('fieldInput').value.trim(),
     note:$('noteInput').value.trim(),type:'Terus'
   };
   try{
