@@ -12,6 +12,12 @@ const JT_SHEETS = Object.freeze({
 function jtDb_(){ return SpreadsheetApp.openById(JT_DB_ID); }
 function jtSheet_(name){ const sh=jtDb_().getSheetByName(name); if(!sh) throw new Error('Sheet database tidak dijumpai: '+name); return sh; }
 function jtNorm_(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,' '); }
+function jtCanonicalName_(v){
+  return jtNorm_(v)
+    .replace(/\bBT\b/g,'BINTI')
+    .replace(/\bBTE\b/g,'BINTI')
+    .replace(/\bBINTE\b/g,'BINTI');
+}
 function jtBool_(v){ return v===true || String(v||'').toUpperCase()==='TRUE' || String(v||'')==='1'; }
 function jtNow_(){ return Utilities.formatDate(new Date(),'Asia/Kuala_Lumpur','yyyy-MM-dd HH:mm:ss'); }
 function jtRows_(name){
@@ -26,16 +32,118 @@ function jtIndex_(headers){ const x={}; headers.forEach((h,i)=>x[h]=i); return x
 function jtAudit_(user,action,targetType,targetId,details){
   try{ jtSheet_(JT_SHEETS.AUDIT).appendRow([jtNow_(),user.email,user.name,action,targetType,targetId,JSON.stringify(details||{})]); }catch(e){}
 }
+function jtNextPersonId_(rows,ix){
+  let m=0;
+  rows.forEach(r=>{
+    const x=String(r[ix.PersonID]||'').match(/(\d+)/);
+    if(x)m=Math.max(m,Number(x[1])||0);
+  });
+  return 'P'+String(m+1).padStart(3,'0');
+}
+function jtSyncTeachersFromEkeb_(actor){
+  if(typeof getAllUsers_!=='function') throw new Error('Fungsi getAllUsers_ eKeberadaan tidak dijumpai.');
+
+  const source=getAllUsers_().filter(u=>{
+    const cat=jtNorm_(u.category);
+    return !!u.active && (cat==='PENGURUSAN' || cat==='PPP') && String(u.name||'').trim();
+  });
+
+  const d=jtRows_(JT_SHEETS.PEOPLE), ix=jtIndex_(d.headers);
+  const byEmail={}, byName={};
+  const matchedRows={};
+  let added=0, updated=0, deactivated=0;
+
+  d.rows.forEach((r,i)=>{
+    if(String(r[ix.Kumpulan]||'')!=='Guru') return;
+    const email=String(r[ix.Emel]||'').trim().toLowerCase();
+    const name=jtCanonicalName_(r[ix.NormalizedName]||r[ix.Nama]);
+    if(email) byEmail[email]=i;
+    if(name) byName[name]=i;
+  });
+
+  source.forEach(u=>{
+    const email=String(u.email||'').trim().toLowerCase();
+    const canonical=jtCanonicalName_(u.name);
+    let idx=(email && byEmail[email]!==undefined) ? byEmail[email] :
+      (byName[canonical]!==undefined ? byName[canonical] : -1);
+
+    if(idx<0){
+      const id=jtNextPersonId_(d.rows,ix);
+      const values={
+        PersonID:id,
+        Nama:String(u.name||'').trim(),
+        Kumpulan:'Guru',
+        JawatanHakiki:String(u.jobTitle||'').trim() || 'Guru Akademik Biasa',
+        Emel:email,
+        KategoriLogin:String(u.category||'PPP'),
+        Aktif:true,
+        NormalizedName:jtNorm_(u.name),
+        Catatan:'Auto sync daripada eKeberadaan',
+        TotalMata:0,
+        BilTugas:0
+      };
+      const row=d.headers.map(h=>values[h]===undefined?'':values[h]);
+      d.sh.appendRow(row);
+      d.rows.push(row);
+      idx=d.rows.length-1;
+      byName[canonical]=idx;
+      if(email)byEmail[email]=idx;
+      added++;
+    }else{
+      const row=d.rows[idx];
+      const rowNo=idx+2;
+      const changes={};
+      const set=(header,value)=>{
+        if(ix[header]===undefined)return;
+        const old=row[ix[header]];
+        if(String(old??'')===String(value??''))return;
+        d.sh.getRange(rowNo,ix[header]+1).setValue(value);
+        row[ix[header]]=value;
+        changes[header]={before:old,after:value};
+      };
+      set('Nama',String(u.name||'').trim());
+      set('Emel',email);
+      set('KategoriLogin',String(u.category||'PPP'));
+      set('Aktif',true);
+      set('NormalizedName',jtNorm_(u.name));
+      if(!String(row[ix.JawatanHakiki]||'').trim()){
+        set('JawatanHakiki',String(u.jobTitle||'').trim() || 'Guru Akademik Biasa');
+      }
+      if(Object.keys(changes).length)updated++;
+    }
+    matchedRows[idx]=true;
+  });
+
+  // eKeberadaan is the master active roster for Guru. Preserve old rows/history,
+  // but hide teachers no longer active in PENGGUNA by setting Aktif=FALSE.
+  d.rows.forEach((r,i)=>{
+    if(String(r[ix.Kumpulan]||'')!=='Guru' || matchedRows[i])return;
+    if(jtBool_(r[ix.Aktif])){
+      d.sh.getRange(i+2,ix.Aktif+1).setValue(false);
+      r[ix.Aktif]=false;
+      deactivated++;
+    }
+  });
+
+  if(added||updated||deactivated){
+    SpreadsheetApp.flush();
+    jtAudit_(actor||{email:'SYSTEM',name:'Auto Sync eKeberadaan'},'SYNC_GURU_EKEBERADAAN','GURU','ROSTER',{
+      sourceActive:source.length,added,updated,deactivated
+    });
+  }
+  return {sourceActive:source.length,added,updated,deactivated};
+}
+
 function jtFindPersonForUser_(user, allowBind, allowAkp){
   const d=jtRows_(JT_SHEETS.PEOPLE), ix=jtIndex_(d.headers);
-  const email=String(user.email||'').trim().toLowerCase(), uname=jtNorm_(user.name);
+  const email=String(user.email||'').trim().toLowerCase(), uname=jtCanonicalName_(user.name);
   let found=null, rowNo=0;
   d.rows.some((r,i)=>{
     if(!jtBool_(r[ix.Aktif])) return false;
     const group=String(r[ix.Kumpulan]||'');
     if(group!=='Guru' && !(allowAkp && group==='AKP')) return false;
     const re=String(r[ix.Emel]||'').trim().toLowerCase();
-    const rn=jtNorm_(r[ix.NormalizedName]||r[ix.Nama]);
+    const rn=jtCanonicalName_(r[ix.NormalizedName]||r[ix.Nama]);
     if((re && re===email) || (!re && rn===uname)){ found=r; rowNo=i+2; return true; }
     return false;
   });
@@ -54,6 +162,7 @@ function jtFindPersonForUser_(user, allowBind, allowAkp){
 }
 function jtRequireUser_(token){
   const user=requireSessionUser_(token);
+  jtSyncTeachersFromEkeb_(user);
   const isManagement=jtNorm_(user.category)==='PENGURUSAN';
   const isSystemAdmin=!!user.isAdmin;
   const person=jtFindPersonForUser_(user,true,isSystemAdmin);
