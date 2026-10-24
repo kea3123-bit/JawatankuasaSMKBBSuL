@@ -102,7 +102,13 @@ function jtAdminUpdatePoint(token,code,points){
   const ctx=jtRequireAdmin_(token); code=String(code||'').trim(); points=Number(points); if(!code||!Number.isFinite(points)||points<0||points>100) throw new Error('Kod atau mata tidak sah.');
   const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers); let rowNo=0, before=null;
   d.rows.some((r,i)=>{if(String(r[ix.KodSkor])===code){rowNo=i+2;before=Number(r[ix.Mata])||0;return true;}return false;});
-  if(!rowNo) throw new Error('Kod skor tidak dijumpai.'); d.sh.getRange(rowNo,ix.Mata+1).setValue(points); jtRebuildTeacherStats_(); jtAudit_(ctx.user,'UPDATE_POINT','POINT_RULE',code,{before,after:points}); return {ok:true,code,points};
+  if(!rowNo) throw new Error('Kod skor tidak dijumpai.');
+  d.sh.getRange(rowNo,ix.Mata+1).setValue(points);
+  const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers);
+  const pointCells=[];
+  ad.rows.forEach((r,i)=>{ if(String(r[ai.KodSkor]||'')===code) pointCells.push(i+2); });
+  pointCells.forEach(rn=>ad.sh.getRange(rn,ai.Mata+1).setValue(points));
+  jtRebuildTeacherStats_(); jtAudit_(ctx.user,'UPDATE_POINT','POINT_RULE',code,{before,after:points,assignmentsUpdated:pointCells.length}); return {ok:true,code,points,assignmentsUpdated:pointCells.length};
 }
 function jtAdminUpdateTeacher(token,personId,jobTitle){
   const ctx=jtRequireAdmin_(token); personId=String(personId||''); jobTitle=String(jobTitle||'').trim(); if(!jobTitle) throw new Error('Jawatan hakiki diperlukan.');
