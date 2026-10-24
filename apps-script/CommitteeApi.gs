@@ -285,17 +285,58 @@ function jtAdminSaveCommittee(token,payload){
   return {ok:true,committee:{id,code,name,field,page}};
 }
 
-function jtAdminUpdatePoint(token,code,points){
-  const ctx=jtRequireAdmin_(token); code=String(code||'').trim(); points=Number(points); if(!code||!Number.isFinite(points)||points<0||points>100) throw new Error('Kod atau mata tidak sah.');
-  const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers); let rowNo=0, before=null;
-  d.rows.some((r,i)=>{if(String(r[ix.KodSkor])===code){rowNo=i+2;before=Number(r[ix.Mata])||0;return true;}return false;});
-  if(!rowNo) throw new Error('Kod skor tidak dijumpai.');
+function jtAdminUpdatePoint(token,code,points,newName){
+  const ctx=jtRequireAdmin_(token);
+  code=String(code||'').trim();
+  newName=String(newName==null?code:newName).trim();
+  points=Number(points);
+  if(!code||!newName||!Number.isFinite(points)||points<0||points>100) throw new Error('Nama jawatan atau mata tidak sah.');
+
+  const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers);
+  let rowNo=0,before=null;
+  d.rows.some((r,i)=>{
+    if(String(r[ix.KodSkor]||'').trim()===code){
+      rowNo=i+2;
+      before={name:String(r[ix.KodSkor]||''),points:Number(r[ix.Mata])||0};
+      return true;
+    }
+    return false;
+  });
+  if(!rowNo) throw new Error('Jawatan tidak dijumpai.');
+
+  if(jtNorm_(newName)!==jtNorm_(code)){
+    const duplicate=d.rows.find(r=>jtNorm_(r[ix.KodSkor])===jtNorm_(newName));
+    if(duplicate) throw new Error('Nama jawatan baharu sudah wujud.');
+  }
+
+  d.sh.getRange(rowNo,ix.KodSkor+1).setValue(newName);
   d.sh.getRange(rowNo,ix.Mata+1).setValue(points);
+  if(ix.Sumber!==undefined)d.sh.getRange(rowNo,ix.Sumber+1).setValue('');
+  if(ix.Catatan!==undefined)d.sh.getRange(rowNo,ix.Catatan+1).setValue('');
+
   const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers);
-  const pointCells=[];
-  ad.rows.forEach((r,i)=>{ if(String(r[ai.KodSkor]||'')===code) pointCells.push(i+2); });
-  pointCells.forEach(rn=>ad.sh.getRange(rn,ai.Mata+1).setValue(points));
-  jtRebuildTeacherStats_(); jtAudit_(ctx.user,'UPDATE_POINT','POINT_RULE',code,{before,after:points,assignmentsUpdated:pointCells.length}); return {ok:true,code,points,assignmentsUpdated:pointCells.length};
+  let assignmentsUpdated=0;
+  ad.rows.forEach((r,i)=>{
+    const role=String(r[ai.Peranan]||'').trim();
+    const score=String(r[ai.KodSkor]||'').trim();
+    if(role===code || score===code){
+      const rn=i+2;
+      ad.sh.getRange(rn,ai.Peranan+1).setValue(newName);
+      ad.sh.getRange(rn,ai.KodSkor+1).setValue(newName);
+      ad.sh.getRange(rn,ai.Mata+1).setValue(points);
+      if(ai.UpdatedAt!==undefined)ad.sh.getRange(rn,ai.UpdatedAt+1).setValue(jtNow_());
+      if(ai.UpdatedBy!==undefined)ad.sh.getRange(rn,ai.UpdatedBy+1).setValue(ctx.user.email);
+      assignmentsUpdated++;
+    }
+  });
+
+  jtRebuildTeacherStats_();
+  jtAudit_(ctx.user,'UPDATE_POINT_RULE','POINT_RULE',code,{
+    before,
+    after:{name:newName,points},
+    assignmentsUpdated
+  });
+  return {ok:true,oldName:code,name:newName,points,assignmentsUpdated};
 }
 function jtAdminUpdateTeacher(token,personId,jobTitle){
   const ctx=jtRequireAdmin_(token); personId=String(personId||''); jobTitle=String(jobTitle||'').trim(); if(!jobTitle) throw new Error('Jawatan hakiki diperlukan.');
@@ -304,7 +345,7 @@ function jtAdminUpdateTeacher(token,personId,jobTitle){
 }
 function jtNextAssignmentId_(rows,ix){ let m=0; rows.forEach(r=>{const x=String(r[ix.AssignmentID]||'').match(/(\d+)/);if(x)m=Math.max(m,Number(x[1])||0);}); return 'A'+String(m+1).padStart(4,'0'); }
 function jtAdminSaveAssignment(token,payload){
-  const ctx=jtRequireAdmin_(token); payload=payload||{}; const personId=String(payload.personId||'').trim(), committee=String(payload.committee||'').trim(), role=String(payload.role||'').trim(), scoreCode=String(payload.scoreCode||'-').trim(); if(!personId||!committee||!role) throw new Error('Guru, jawatankuasa dan peranan diperlukan.');
+  const ctx=jtRequireAdmin_(token); payload=payload||{}; const personId=String(payload.personId||'').trim(), committee=String(payload.committee||'').trim(), scoreCode=String(payload.scoreCode||'').trim(), role=scoreCode; if(!personId||!committee||!scoreCode) throw new Error('Guru, jawatankuasa dan jawatan diperlukan.');
   const pd=jtRows_(JT_SHEETS.PEOPLE), pi=jtIndex_(pd.headers), p=pd.rows.find(r=>String(r[pi.PersonID])===personId&&String(r[pi.Kumpulan])==='Guru'); if(!p) throw new Error('Guru tidak dijumpai.');
   const rules=jtRuleMap_(); if(rules[scoreCode]===undefined) throw new Error('Kod skor tidak sah.');
   const ad=jtRows_(JT_SHEETS.ASSIGNMENTS), ai=jtIndex_(ad.headers); let rowNo=0,id=String(payload.assignmentId||'').trim(),before=null; if(id) ad.rows.some((r,i)=>{if(String(r[ai.AssignmentID])===id){rowNo=i+2;before=jtObj_(ad.headers,r);return true;}return false;}); else id=jtNextAssignmentId_(ad.rows,ai);
