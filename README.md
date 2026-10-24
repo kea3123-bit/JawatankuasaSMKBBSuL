@@ -31,22 +31,22 @@ Existing backend deployment:
 
 `https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec`
 
-1. Open the Apps Script project behind the deployment above.
+1. Open the modular eKeberadaan Apps Script project that contains `Bridges.gs`.
 2. Add a new script file named `CommitteeApi.gs` and paste `apps-script/CommitteeApi.gs`.
-3. Add a second new script file named `PagesBridge.gs` and paste `apps-script/PagesBridge.gs`.
-4. Do **not** edit or look for `Bridges.gs`; the current eKeberadaan project does not have that file.
+3. Patch the existing `Bridges.gs` exactly as documented in `apps-script/BRIDGE_PATCH.md`: add the 7 `jt*` names to `pagesBridgeMethodAllowed_()` and the matching 7 cases to `invokePagesBridgeMethod_()`.
+4. Do **not** add another `doPost()` or `PagesBridge.gs`; the existing `Bridges.gs` already provides the GitHub Pages transport.
 5. Save the project.
 6. Deploy a **new version of the existing Web App deployment** so the same `/exec` URL remains valid.
 
-`PagesBridge.gs` adds the missing `doPost()` endpoint and only accepts requests from `https://kea3123-bit.github.io`.
+The existing bridge already allows `https://kea3123-bit.github.io` by default.
 
 ## Security model
 
 Every committee API call first runs the existing eKeberadaan `requireSessionUser_(token)`.
 
-- The system checks the live eKeberadaan spreadsheet `18XP3epj-kKTgjeeUdYxIrseyh4y_fJHoY0ygNXrtFZA`, tab `PENGGUNA`.
+- The committee API reuses the already-validated eKeberadaan session through `requireSessionUser_(token)`; it does not open the eKeberadaan spreadsheet separately.
 - Normal access requires an active eKeberadaan account matched to an active `GURU` row with `Kumpulan=Guru`.
-- If `PENGGUNA.Pentadbir = TRUE`, the account is treated as **Pentadbir Sistem** and may also match an AKP row.
+- If the logged-in eKeberadaan user has `user.isAdmin = true` (the existing `PENGGUNA.Pentadbir` checkbox), the account is treated as **Pentadbir Sistem** and may also match an AKP row.
 - On first successful match, the DELIMa email is bound to that `GURU`/AKP row.
 - After binding, a different email cannot claim the same person row.
 - Admin methods require either `user.category === 'Pengurusan'` or `PENGGUNA.Pentadbir = TRUE`.
