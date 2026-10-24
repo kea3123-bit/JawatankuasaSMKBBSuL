@@ -46,6 +46,10 @@
     <div class="section-head"><div class="admin-back"><button class="btn small admin-back-btn">← Kembali</button><div><h2>Guru & Pelantikan</h2><p>Hanya senarai guru dan guru yang dipilih dimuatkan.</p></div></div><button class="btn small" id="refreshTeachers">Muat semula</button></div>
     <div class="panel"><div class="panel-body">
       <div class="field"><label>Guru</label><select id="adminTeacher"></select></div>
+      <div class="detail-kpi" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:4px 0 14px">
+        <div><b id="adminTeacherPoints">–</b><span>Jumlah Mata</span></div>
+        <div><b id="adminTeacherTasks">–</b><span>Bil. Pelantikan</span></div>
+      </div>
       <div class="field"><label>Jawatan hakiki</label><div style="display:flex;gap:7px"><input id="jobTitle"><button class="btn" id="saveJob">Simpan</button></div></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
       <button class="btn primary" id="newAssignment">+ Tambah pelantikan</button>
@@ -199,12 +203,20 @@ async function loadAdminTeacher(){
   if(!id)return;
   const t=(a.teachers||[]).find(x=>x.id===id);
   $('jobTitle').value=t?.jobTitle||'';
+  $('adminTeacherPoints').textContent='–';
+  $('adminTeacherTasks').textContent='–';
   $('adminAssignments').innerHTML='<div class="loading">Memuatkan pelantikan guru…</div>';
   try{
     const d=await bridge('jtGetTeacherDetail',state.token,id);
+    $('adminTeacherPoints').textContent=Number(d.teacher?.totalPoints||0);
+    $('adminTeacherTasks').textContent=Number(d.teacher?.taskCount||0);
     $('adminAssignments').innerHTML=d.assignments.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.committee)}</b><div class="meta">${esc(x.role)} · ${x.points} mata</div></div><button class="btn small edit-asg" data-id="${esc(x.assignmentId)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';
     document.querySelectorAll('.edit-asg').forEach(b=>b.onclick=()=>openAssignment(d.assignments.find(x=>x.assignmentId===b.dataset.id)));
-  }catch(e){$('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}
+  }catch(e){
+    $('adminTeacherPoints').textContent='–';
+    $('adminTeacherTasks').textContent='–';
+    $('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>';
+  }
 }
 $('saveJob').onclick=async()=>{
   const a=ensureAdminState(),id=$('adminTeacher').value,title=$('jobTitle').value.trim();
