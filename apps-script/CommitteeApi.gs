@@ -114,6 +114,43 @@ function jtGetAdminData(token){
   const pd=jtRows_(JT_SHEETS.PEOPLE), pi=jtIndex_(pd.headers);
   return {ok:true,user:jtPublicUser_(ctx),rules:rd.rows.filter(r=>jtBool_(r[ri.Aktif])).map(r=>({code:String(r[ri.KodSkor]),points:Number(r[ri.Mata])||0,source:String(r[ri.Sumber]||''),note:String(r[ri.Catatan]||'')})),committees:cd.rows.filter(r=>jtBool_(r[ci.Aktif])).map(r=>({id:String(r[ci.CommitteeID]),code:String(r[ci.KodManual]||''),name:String(r[ci.NamaJawatankuasa]),field:String(r[ci.Bidang]||''),page:String(r[ci.MukaSurat]||'')})),teachers:pd.rows.filter(r=>String(r[pi.Kumpulan])==='Guru'&&jtBool_(r[pi.Aktif])).map(r=>({id:String(r[pi.PersonID]),name:String(r[pi.Nama]),jobTitle:String(r[pi.JawatanHakiki]||''),email:String(r[pi.Emel]||'')}))};
 }
+function jtNextCommitteeId_(rows,ix){
+  let m=0;
+  rows.forEach(r=>{
+    const x=String(r[ix.CommitteeID]||'').match(/(\d+)/);
+    if(x)m=Math.max(m,Number(x[1])||0);
+  });
+  return 'J'+String(m+1).padStart(3,'0');
+}
+function jtAdminSaveCommittee(token,payload){
+  const ctx=jtRequireAdmin_(token);
+  payload=payload||{};
+  const name=String(payload.name||'').trim();
+  const code=String(payload.code||'').trim();
+  const field=String(payload.field||'').trim();
+  const page=String(payload.page||'').trim();
+  if(!name) throw new Error('Nama jawatankuasa diperlukan.');
+
+  const d=jtRows_(JT_SHEETS.COMMITTEES), ix=jtIndex_(d.headers);
+  const normalized=jtNorm_(name);
+  const duplicate=d.rows.find(r=>jtNorm_(r[ix.NamaJawatankuasa])===normalized && jtBool_(r[ix.Aktif]));
+  if(duplicate) throw new Error('Jawatankuasa ini sudah wujud.');
+
+  const id=jtNextCommitteeId_(d.rows,ix);
+  const values={
+    CommitteeID:id,
+    KodManual:code,
+    NamaJawatankuasa:name,
+    Bidang:field,
+    MukaSurat:page,
+    Aktif:true
+  };
+  const row=d.headers.map(h=>values[h]===undefined?'':values[h]);
+  d.sh.appendRow(row);
+  jtAudit_(ctx.user,'ADD_COMMITTEE','JAWATANKUASA',id,{after:values});
+  return {ok:true,committee:{id,code,name,field,page}};
+}
+
 function jtAdminUpdatePoint(token,code,points){
   const ctx=jtRequireAdmin_(token); code=String(code||'').trim(); points=Number(points); if(!code||!Number.isFinite(points)||points<0||points>100) throw new Error('Kod atau mata tidak sah.');
   const d=jtRows_(JT_SHEETS.RULES), ix=jtIndex_(d.headers); let rowNo=0, before=null;
