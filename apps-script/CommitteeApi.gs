@@ -179,13 +179,34 @@ function jtGetBootstrap(token,includeSearch){
   return out;
 }
 function jtGetTeacherDetail(token,personId){
-  jtRequireUser_(token);personId=String(personId||'').trim();
-  const pd=jtRows_(JT_SHEETS.PEOPLE),pi=jtIndex_(pd.headers),prow=pd.rows.find(r=>String(r[pi.PersonID])===personId&&String(r[pi.Kumpulan])==='Guru');
-  if(!prow)throw new Error('Guru tidak dijumpai.');
-  const ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers),rules=jtRuleMap_();
-  const assignments=ad.rows.filter(r=>String(r[ai.PersonID])===personId&&jtBool_(r[ai.Aktif])).map(r=>({assignmentId:String(r[ai.AssignmentID]),committeeId:String(r[ai.CommitteeID]||''),committee:String(r[ai.Jawatankuasa]||''),role:String(r[ai.Peranan]||''),scoreCode:String(r[ai.KodSkor]||''),points:Number(rules[String(r[ai.KodSkor]||'')]||0),field:String(r[ai.Bidang]||''),type:String(r[ai.Jenis]||''),note:String(r[ai.Catatan]||'')}));
-  const total=assignments.reduce((s,a)=>s+a.points,0);
-  return {ok:true,teacher:{personId,name:String(prow[pi.Nama]),jobTitle:String(prow[pi.JawatanHakiki]||''),email:String(prow[pi.Emel]||''),totalPoints:total,taskCount:assignments.length},assignments};
+  const ctx=jtRequireUser_(token);personId=String(personId||'').trim();
+  const pd=jtRows_(JT_SHEETS.PEOPLE),pi=jtIndex_(pd.headers),prow=pd.rows.find(r=>String(r[pi.PersonID])===personId);
+  if(!prow)throw new Error('Individu tidak dijumpai.');
+  const ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers),rules=ctx.isAdmin?jtRuleMap_():null;
+  const assignments=ad.rows.filter(r=>String(r[ai.PersonID])===personId&&jtBool_(r[ai.Aktif])).map(r=>{
+    const item={
+      assignmentId:String(r[ai.AssignmentID]),
+      committeeId:String(r[ai.CommitteeID]||''),
+      committee:String(r[ai.Jawatankuasa]||''),
+      role:String(r[ai.Peranan]||''),
+      scoreCode:String(r[ai.KodSkor]||''),
+      field:String(r[ai.Bidang]||''),
+      type:String(r[ai.Jenis]||''),
+      note:String(r[ai.Catatan]||'')
+    };
+    if(ctx.isAdmin)item.points=Number(rules[String(r[ai.KodSkor]||'')]||0);
+    return item;
+  });
+  const teacher={
+    personId,
+    name:String(prow[pi.Nama]||''),
+    group:String(prow[pi.Kumpulan]||''),
+    jobTitle:String(prow[pi.JawatanHakiki]||''),
+    email:String(prow[pi.Emel]||''),
+    taskCount:assignments.length
+  };
+  if(ctx.isAdmin)teacher.totalPoints=assignments.reduce((s,a)=>s+Number(a.points||0),0);
+  return {ok:true,teacher,assignments};
 }
 function jtGetAdminRules(token){
   const ctx=jtRequireAdmin_(token),d=jtRows_(JT_SHEETS.RULES),ix=jtIndex_(d.headers),ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers),usage={};
