@@ -76,13 +76,17 @@ The eKeberadaan `PENGGUNA` sheet is the master teacher roster.
 - Existing `JawatanHakiki` values are preserved; eKeberadaan job title is used when creating a new teacher or when the Jawatankuasa job title is blank.
 - Roster sync is cached for 10 minutes during normal API use. Admins can explicitly run **Sync eKeberadaan** from Guru & Pelantikan when an immediate refresh is needed.
 
-## Jawatankuasa & Jawatan reference tab
+## Senarai Jawatankuasa
 
-A separate **Jawatankuasa & Jawatan** tab reproduces the old MyPortfolio-style reference experience using live Sheet data. It supports Automatik / Jawatankuasa / Individu modes, universal search by name/committee/role, Bidang filtering, expandable cards, and copy-all output. It intentionally does not show ranking, total points, or any weighting values.
+The default tab for all signed-in users is **Senarai Jawatankuasa**. It uses the same compact dashboard style as the weighted admin view but never renders ranking, total points, or weighting values. Search is automatic: a person/role query shows individuals and their appointments, while a committee-name/code query switches to a complete committee view. The public reference index includes active Guru and AKP records and can be filtered by Bidang.
 
-## Universal search
 
-The main Guru & Mata page supports three search modes: **Automatik**, **Jawatankuasa**, and **Individu**. The search field matches teacher names, jawatan hakiki, committee names, Bidang, and assignment roles. Search data is loaded lazily on first use so initial page loading stays light. In Automatik mode, a committee-title match switches to a full committee view with all active members; name/role searches remain in individual view.
+## Automatic search
+
+Search behavior follows the original MyPortfolio HTML logic. There are no manual Automatik/Jawatankuasa/Individu buttons. A query that matches a committee name/code switches automatically to the committee view; person names and role/jawatan queries remain in the individual view.
+
+For **Pengurusan** and **Pentadbir Sistem**, the additional **Senarai Jawatankuasa (Pentadbir)** tab keeps the weighted dashboard. With no query or a teacher-name query it shows ranking and points; role/jawatan and committee searches switch to non-weighted reference results. **Pentadbiran** remains admin-only.
+
 
 ## User features
 
