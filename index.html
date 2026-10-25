@@ -20,48 +20,26 @@
 </section>
 
 <div id="app" class="shell hidden">
-<header class="top"><div class="top-in"><div class="logo">JT</div><div class="brand">Pemberatan Tugas Guru<small>SMK Bandar Baru Sungai Lalang · 2026</small></div><div class="top-spacer"></div><div class="who"><b id="whoName"></b><span id="whoRole"></span></div><button class="btn small" id="logoutBtn">Keluar</button></div><nav class="nav"><button data-tab="teachers" class="active">Guru & Mata</button><button data-tab="portfolio">Jawatankuasa & Jawatan</button><button data-tab="admin" id="adminTab" class="hidden">Pentadbiran</button></nav></header>
+<header class="top"><div class="top-in"><div class="logo">JT</div><div class="brand">Pemberatan Tugas Guru<small>SMK Bandar Baru Sungai Lalang · 2026</small></div><div class="top-spacer"></div><div class="who"><b id="whoName"></b><span id="whoRole"></span></div><button class="btn small" id="logoutBtn">Keluar</button></div><nav class="nav"><button data-tab="portfolio" class="active">Senarai Jawatankuasa</button><button data-tab="teachers" id="weightedTab" class="hidden">Senarai Jawatankuasa (Pentadbir)</button><button data-tab="admin" id="adminTab" class="hidden">Pentadbiran</button></nav></header>
 <main class="wrap">
-<section id="teachersTab">
+<section id="teachersTab" class="hidden">
 <div class="hero"><div class="hero-main"><div style="font-size:11px;letter-spacing:.14em;font-weight:800;color:#9ee9df">PEMBERATAN TUGAS · SESI 2026</div><h1>Keseimbangan tugas dalam satu paparan.</h1><p>Jumlah mata dikira daripada pelantikan aktif dan nilai jawatan yang ditetapkan pentadbir.</p></div><div class="kpis"><div class="kpi"><b id="kpiTeachers">–</b><span>Guru</span></div><div class="kpi"><b id="kpiAvg">–</b><span>Purata mata</span></div><div class="kpi"><b id="kpiHighest">–</b><span>Mata tertinggi</span></div><div class="kpi"><b id="kpiTasks">–</b><span>Jumlah pelantikan</span></div></div></div>
 <div class="search-box">
-  <div class="search-mode" role="group" aria-label="Mod carian">
-    <button type="button" class="search-mode-button active" data-search-mode="auto">Automatik</button>
-    <button type="button" class="search-mode-button" data-search-mode="committee">Jawatankuasa</button>
-    <button type="button" class="search-mode-button" data-search-mode="person">Individu</button>
-  </div>
   <div class="toolbar" style="margin-bottom:7px"><input id="teacherSearch" class="search" type="search" placeholder="Cari nama / jawatankuasa / jawatan..." autocomplete="off" aria-label="Cari nama, jawatankuasa atau jawatan"><select id="teacherSort" style="max-width:210px"><option value="points-desc">Mata tertinggi</option><option value="points-asc">Mata terendah</option><option value="name">Nama A–Z</option></select></div>
-  <div class="search-hint"><span id="teacherSearchHint">Cari nama guru, nama jawatankuasa atau jawatan/peranan.</span> <span class="result-count" id="teacherSearchCount"></span></div>
+  <div class="search-hint"><span id="teacherSearchHint">Carian automatik: nama guru memaparkan mata; jawatan atau jawatankuasa dipaparkan sebagai rujukan pelantikan.</span> <span class="result-count" id="teacherSearchCount"></span></div>
 </div>
 <div id="personSearchResults" class="panel table-wrap"><table class="table"><thead><tr><th style="width:90px">Ranking Mata</th><th>Guru</th><th>Jawatan hakiki</th><th style="width:115px">Bil. tugas</th><th style="width:120px">Jumlah mata</th></tr></thead><tbody id="teacherBody"></tbody></table><div id="teacherEmpty" class="empty hidden">Tiada individu sepadan.</div></div>
+<div id="adminRoleResults" class="panel table-wrap hidden"><table class="table"><thead><tr><th>Nama</th><th>Jawatan Hakiki</th><th>Padanan Jawatan / Jawatankuasa</th><th style="width:110px">Padanan</th></tr></thead><tbody id="adminRoleBody"></tbody></table><div id="adminRoleEmpty" class="empty hidden">Tiada individu sepadan.</div></div>
 <div id="committeeSearchResults" class="committee-results hidden"></div>
 </section>
-<section id="portfolioTab" class="hidden">
-  <div class="portfolio-hero">
-    <div class="eyebrow">MYPORTFOLIO · SESI AKADEMIK 2026</div>
-    <h1>Jawatankuasa & Jawatan</h1>
-    <p>Cari nama individu, nama jawatankuasa atau peranan. Paparan ini ialah rujukan pelantikan tanpa pemberatan tugas.</p>
-  </div>
-  <div class="portfolio-controls">
-    <div class="search-mode" role="group" aria-label="Pilihan paparan Jawatankuasa dan Jawatan">
-      <button type="button" class="search-mode-button portfolio-mode active" data-portfolio-mode="auto">Automatik</button>
-      <button type="button" class="search-mode-button portfolio-mode" data-portfolio-mode="committee">Jawatankuasa</button>
-      <button type="button" class="search-mode-button portfolio-mode" data-portfolio-mode="person">Individu</button>
-    </div>
-    <div class="portfolio-filter-grid">
-      <div class="field" style="margin:0"><label for="portfolioSearch">Cari nama / jawatankuasa / peranan</label><input id="portfolioSearch" type="search" placeholder="Contoh: Surau, Setiausaha, Azlan..." autocomplete="off"></div>
-      <div class="field" style="margin:0"><label for="portfolioField">Bidang</label><select id="portfolioField"><option value="">Semua bidang</option></select></div>
-    </div>
-    <div class="portfolio-actions">
-      <button class="btn primary" id="portfolioCopyAll">Salin semua dipaparkan</button>
-      <button class="btn" id="portfolioExpand">Buka semua</button>
-      <button class="btn" id="portfolioCollapse">Tutup semua</button>
-    </div>
-  </div>
-  <div class="portfolio-note"><strong>Cara guna:</strong> cari nama jawatankuasa untuk melihat semua ahli dan peranan dalam satu kad; cari nama individu atau jawatan untuk melihat pelantikan mengikut individu.</div>
-  <div class="portfolio-results-head"><h2 id="portfolioResultTitle">Senarai mengikut individu</h2><small id="portfolioCount"></small></div>
-  <div id="portfolioHint" class="search-hint"></div>
-  <div id="portfolioCards" class="portfolio-cards"><div class="loading">Buka tab untuk memuatkan data.</div></div>
+<section id="portfolioTab">
+<div class="hero"><div class="hero-main"><div style="font-size:11px;letter-spacing:.14em;font-weight:800;color:#9ee9df">MYPORTFOLIO · SESI AKADEMIK 2026</div><h1>Pelantikan & jawatankuasa dalam satu paparan.</h1><p>Cari nama individu, jawatan/peranan atau jawatankuasa. Paparan ini tidak menggunakan pemberatan tugas.</p></div><div class="kpis"><div class="kpi"><b id="publicPeopleKpi">–</b><span>Individu</span></div><div class="kpi"><b id="publicCommitteeKpi">–</b><span>Jawatankuasa</span></div><div class="kpi"><b id="publicFieldKpi">–</b><span>Bidang</span></div><div class="kpi"><b id="publicTaskKpi">–</b><span>Jumlah pelantikan</span></div></div></div>
+<div class="search-box">
+  <div class="toolbar" style="margin-bottom:7px"><input id="publicSearch" class="search" type="search" placeholder="Cari nama / jawatankuasa / jawatan..." autocomplete="off" aria-label="Cari nama, jawatankuasa atau jawatan"><select id="publicField" style="max-width:230px"><option value="">Semua bidang</option></select></div>
+  <div class="search-hint"><span id="publicSearchHint">Carian automatik seperti MyPortfolio asal: nama/jawatan → individu, nama/kod jawatankuasa → jawatankuasa lengkap.</span> <span class="result-count" id="publicSearchCount"></span></div>
+</div>
+<div id="publicPersonResults" class="panel table-wrap"><table class="table"><thead><tr><th>Individu</th><th style="width:120px">Kumpulan</th><th>Jawatan Hakiki</th><th style="width:135px">Bil. Pelantikan</th></tr></thead><tbody id="publicPersonBody"></tbody></table><div id="publicPersonEmpty" class="empty hidden">Tiada individu sepadan.</div></div>
+<div id="publicCommitteeResults" class="committee-results hidden"></div>
 </section>
 <section id="adminPanel" class="hidden">
   <div id="adminHome">
@@ -110,7 +88,7 @@
 </section>
 </main></div>
 
-<div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailName"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi" style="grid-template-columns:repeat(2,1fr)"><div><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div></div><div id="taskList"></div></div></aside></div>
+<div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailName"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi" id="detailKpi" style="grid-template-columns:repeat(2,1fr)"><div id="detailPointsCard"><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div></div><div id="taskList"></div></div></aside></div>
 <div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Cari Jawatankuasa</label><input id="committeeFilter" type="search" placeholder="Cari nama atau bidang..."><select id="committeeSelect" style="margin-top:7px"></select><div class="sub" id="assignmentFieldPreview" style="margin-top:5px"></div></div><div class="field"><label>Cari Jawatan / Nilai Mata</label><input id="scoreFilter" type="search" placeholder="Cari jawatan..."><select id="scoreSelect" style="margin-top:7px"></select><div class="sub" style="margin-top:5px">Peranan dan KodSkor sentiasa disimpan dengan nama yang sama.</div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
 <div id="globalLoading" class="global-loading" role="status" aria-live="polite" aria-busy="true">
   <div class="global-loading-card">
@@ -122,7 +100,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec';
-const state={token:'',device:'',boot:null,teachers:[],admin:null,selectedAccount:null,changeTicket:'',currentTeacher:null,adminTeacherId:'',committeePage:1,editingAssignment:null,lastFocus:null,searchMode:'auto',searchLoaded:false,searchLoading:null,searchRecords:[],searchCommittees:[],searchByPerson:null,searchByCommittee:null,portfolioMode:'auto',portfolioReady:false};
+const state={token:'',device:'',boot:null,teachers:[],admin:null,selectedAccount:null,changeTicket:'',currentTeacher:null,adminTeacherId:'',committeePage:1,editingAssignment:null,lastFocus:null,searchLoaded:false,searchLoading:null,searchPeople:[],searchRecords:[],searchCommittees:[],searchByPerson:null,searchByCommittee:null,portfolioReady:false};
 const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showToast(msg,type='success',actionLabel='',action=null){
   const e=$('toast');e.className='toast'+(type==='error'?' error':'');e.replaceChildren();
@@ -207,7 +185,7 @@ function bridge(method,...args){
    try{form.submit()}catch(e){done(e)}
  });
 }
-async function bootstrapJt(){const b=await bridge('jtGetBootstrap',state.token);state.boot=b;state.teachers=b.teachers||[];renderUser();renderTeachers();$('loginPage').classList.add('hidden');$('app').classList.remove('hidden')}
+async function bootstrapJt(){const b=await bridge('jtGetBootstrap',state.token);state.boot=b;state.teachers=b.teachers||[];renderUser();$('loginPage').classList.add('hidden');$('app').classList.remove('hidden');await openPortfolioTab();if(b.user?.isAdmin)renderTeachers()}
 async function tryResume(){const token=loadSession(),device=loadDevice();if(token){try{const r=await bridge('resumeSession',token,device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){clearSession()}}if(device){try{const r=await bridge('resumeTrustedDevice',device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){}}return false}
 function showStep(id){['stepEmail','stepPin','stepSetPin'].forEach(x=>$(x).classList.toggle('hidden',x!==id));loginError('')}
 $('emailBtn').onclick=async()=>{const email=$('email').value.trim();if(!email)return loginError('Masukkan emel DELIMa.');$('emailBtn').disabled=true;try{const r=await bridge('checkDelimaAccount',email,clientInfo());state.selectedAccount=r.user;if(r.pinReady){$('accountText').innerHTML='<b>'+esc(r.user.name)+'</b><br>'+esc(r.user.email);showStep('stepPin');$('pin').focus()}else{state.changeTicket=r.changeTicket;$('setupText').textContent=r.message||'Cipta PIN 6 digit.';showStep('stepSetPin');$('newPin').focus()}}catch(e){loginError(errMsg(e))}finally{$('emailBtn').disabled=false}};
@@ -216,12 +194,12 @@ $('setPinBtn').onclick=async()=>{const a=$('newPin').value.replace(/\D/g,''),b=$
 $('backBtn').onclick=$('backBtn2').onclick=()=>{state.selectedAccount=null;state.changeTicket='';showStep('stepEmail')};
 $('logoutBtn').onclick=async()=>{try{if(state.token)await bridge('logoutApp',state.token)}catch(e){}clearSession();location.reload()};
 
-function renderUser(){const u=state.boot.user;$('whoName').textContent=u.name;const adminLabel=u.isAdmin?(u.adminSource||'Pentadbir'):'';$('whoRole').textContent=(u.category||u.group||'')+(adminLabel?' · '+adminLabel:'');$('adminTab').classList.toggle('hidden',!u.isAdmin)}
+function renderUser(){const u=state.boot.user;$('whoName').textContent=u.name;const adminLabel=u.isAdmin?(u.adminSource||'Pentadbir'):'';$('whoRole').textContent=(u.category||u.group||'')+(adminLabel?' · '+adminLabel:'');$('weightedTab').classList.toggle('hidden',!u.isAdmin);$('adminTab').classList.toggle('hidden',!u.isAdmin)}
 function normSearch(v){
   return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 }
 function invalidateSearchIndex(){
-  state.searchLoaded=false;state.searchLoading=null;state.searchRecords=[];state.searchCommittees=[];state.searchByPerson=null;state.searchByCommittee=null;state.portfolioReady=false;
+  state.searchLoaded=false;state.searchLoading=null;state.searchPeople=[];state.searchRecords=[];state.searchCommittees=[];state.searchByPerson=null;state.searchByCommittee=null;state.portfolioReady=false;
 }
 function buildSearchMaps(){
   const byPerson={},byCommittee={};
@@ -235,183 +213,150 @@ async function ensureSearchIndex(){
   if(state.searchLoaded)return true;
   if(state.searchLoading)return state.searchLoading;
   state.searchLoading=bridge('jtGetBootstrap',state.token,true).then(b=>{
-    state.searchRecords=b.searchRecords||[];state.searchCommittees=b.searchCommittees||[];state.searchLoaded=true;buildSearchMaps();
-    if(b.teachers){state.teachers=b.teachers}
+    state.searchPeople=b.searchPeople||[];state.searchRecords=b.searchRecords||[];state.searchCommittees=b.searchCommittees||[];state.searchLoaded=true;buildSearchMaps();
+    if(b.teachers)state.teachers=b.teachers;
     return true;
   }).finally(()=>{state.searchLoading=null});
   return state.searchLoading;
 }
-function resolvedSearchMode(){
-  if(state.searchMode!=='auto')return state.searchMode;
-  const q=normSearch($('teacherSearch').value);if(!q)return 'person';
-  const personMatch=state.teachers.some(t=>normSearch(t.name+' '+(t.jobTitle||'')).includes(q));
-  const committeeMatch=(state.searchCommittees||[]).some(x=>normSearch([x.name,x.code,x.field].join(' ')).includes(q));
-  if(committeeMatch&&!personMatch)return 'committee';
-  if(committeeMatch&&(q.includes('jawatankuasa')||q.includes('panitia')||q.startsWith('jm')))return 'committee';
+function autoSearchMode(query,people){
+  const q=normSearch(query);if(!q)return 'person';
+  const personMatches=(people||[]).some(p=>normSearch(p.name).includes(q));
+  const committeeMatches=(state.searchCommittees||[]).some(x=>normSearch(x.name).includes(q)||normSearch(x.code).includes(q));
+  if(committeeMatches&&!personMatches)return 'committee';
+  if(q.includes('jawatankuasa')||q.startsWith('jm0')||q.startsWith('jm2')||q.startsWith('jm3'))return 'committee';
   return 'person';
 }
 function teacherRankMap(){
-  const ranked=[...state.teachers].sort((x,y)=>y.points-x.points||x.name.localeCompare(y.name,'ms')),rankMap={};let lastPoints=null,lastRank=0;
-  ranked.forEach((x,i)=>{if(lastPoints===null||x.points!==lastPoints)lastRank=i+1;rankMap[x.id]=lastRank;lastPoints=x.points});
+  const ranked=[...state.teachers].sort((x,y)=>Number(y.points||0)-Number(x.points||0)||x.name.localeCompare(y.name,'ms')),rankMap={};let lastPoints=null,lastRank=0;
+  ranked.forEach((x,i)=>{const p=Number(x.points||0);if(lastPoints===null||p!==lastPoints)lastRank=i+1;rankMap[x.id]=lastRank;lastPoints=p});
   return rankMap;
 }
-function personSearchRows(q){
+function adminPersonMatches(q){
   const nq=normSearch(q),byPerson=state.searchByPerson||{};
   return state.teachers.map(t=>{
-    const rows=byPerson[t.id]||[],direct=normSearch(t.name+' '+(t.jobTitle||'')).includes(nq);
-    const matched=nq?rows.filter(r=>normSearch([r.name,r.committee,r.role,r.field].join(' ')).includes(nq)):[];
-    return Object.assign({},t,{_matched:matched,_direct:direct});
-  }).filter(t=>!nq||t._direct||t._matched.length);
+    const allRows=byPerson[t.id]||[],directName=!!nq&&normSearch(t.name).includes(nq),directJob=!!nq&&normSearch(t.jobTitle||'').includes(nq);
+    const matched=nq?(directName?allRows:allRows.filter(r=>normSearch([r.name,r.committee,r.role,r.field].join(' ')).includes(nq))):[];
+    return Object.assign({},t,{_matched:matched,_directName:directName,_directJob:directJob});
+  }).filter(t=>!nq||t._directName||t._directJob||t._matched.length);
 }
-function renderPersonResults(q){
-  const rankMap=teacherRankMap(),sort=$('teacherSort').value;let a=personSearchRows(q);
-  if(sort==='points-desc')a.sort((x,y)=>y.points-x.points||x.name.localeCompare(y.name,'ms'));
-  if(sort==='points-asc')a.sort((x,y)=>x.points-y.points||x.name.localeCompare(y.name,'ms'));
+function adminSearchKind(q){
+  const nq=normSearch(q);if(!nq)return 'weighted';
+  if(autoSearchMode(q,state.teachers)==='committee')return 'committee';
+  if(state.teachers.some(t=>normSearch(t.name).includes(nq)))return 'weighted';
+  return 'role';
+}
+function renderWeightedPeople(q){
+  const rankMap=teacherRankMap(),sort=$('teacherSort').value;let a=adminPersonMatches(q);
+  if(sort==='points-desc')a.sort((x,y)=>Number(y.points||0)-Number(x.points||0)||x.name.localeCompare(y.name,'ms'));
+  if(sort==='points-asc')a.sort((x,y)=>Number(x.points||0)-Number(y.points||0)||x.name.localeCompare(y.name,'ms'));
   if(sort==='name')a.sort((x,y)=>x.name.localeCompare(y.name,'ms'));
   $('teacherBody').innerHTML=a.map(x=>{
     const matchBits=(x._matched||[]).slice(0,2).map(r=>r.role+' · '+r.committee),more=(x._matched||[]).length-matchBits.length;
     const sub=matchBits.length?matchBits.join(' | ')+(more>0?' · +'+more+' lagi':''):'Buka senarai pelantikan';
-    return `<tr class="teacher-row" tabindex="0" role="button" aria-label="Lihat pelantikan ${esc(x.name)}" data-id="${esc(x.id)}"><td><div class="rank">${rankMap[x.id]}</div></td><td><div class="name">${esc(x.name)}</div><div class="${matchBits.length?'match-text':'sub'}">${esc(sub)}</div></td><td>${esc(x.jobTitle||'')}</td><td>${x.count}</td><td><span class="points">${x.points}</span></td></tr>`;
+    return `<tr class="teacher-row" tabindex="0" role="button" data-id="${esc(x.id)}"><td><div class="rank">${rankMap[x.id]}</div></td><td><div class="name">${esc(x.name)}</div><div class="${matchBits.length?'match-text':'sub'}">${esc(sub)}</div></td><td>${esc(x.jobTitle||'')}</td><td>${Number(x.count||0)}</td><td><span class="points">${Number(x.points||0)}</span></td></tr>`;
   }).join('');
-  $('teacherEmpty').classList.toggle('hidden',a.length>0);$('teacherSearchCount').textContent=a.length+' individu ditemui';
-  document.querySelectorAll('.teacher-row').forEach(r=>{r.onclick=()=>openTeacher(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTeacher(r.dataset.id)}}});
+  $('teacherEmpty').classList.toggle('hidden',a.length>0);$('teacherSearchCount').textContent=a.length+' guru ditemui';
+  document.querySelectorAll('#personSearchResults .teacher-row').forEach(r=>{r.onclick=()=>openTeacher(r.dataset.id,true);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTeacher(r.dataset.id,true)}}});
 }
-function committeeSearchRows(q){
+function renderAdminRolePeople(q){
+  const a=adminPersonMatches(q);
+  $('adminRoleBody').innerHTML=a.map(x=>{
+    const bits=(x._matched||[]).slice(0,3).map(r=>r.role+' · '+r.committee);
+    const match=bits.length?bits.join(' | '):(x._directJob?'Jawatan hakiki: '+x.jobTitle:'Padanan individu');
+    return `<tr class="teacher-row" tabindex="0" role="button" data-id="${esc(x.id)}"><td><div class="name">${esc(x.name)}</div></td><td>${esc(x.jobTitle||'')}</td><td><div class="match-text">${esc(match)}</div></td><td>${x._matched.length||1}</td></tr>`;
+  }).join('');
+  $('adminRoleEmpty').classList.toggle('hidden',a.length>0);$('teacherSearchCount').textContent=a.length+' individu ditemui';
+  document.querySelectorAll('#adminRoleResults .teacher-row').forEach(r=>{r.onclick=()=>openTeacher(r.dataset.id,false);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTeacher(r.dataset.id,false)}}});
+}
+function committeeRowsForQuery(q,field=''){
   const nq=normSearch(q),byCommittee=state.searchByCommittee||{};
-  return (state.searchCommittees||[]).map(c=>{
-    const members=byCommittee[c.id]||[];
-    const own=normSearch([c.name,c.code,c.field].join(' ')).includes(nq);
-    const memberMatch=nq?members.some(r=>normSearch([r.name,r.role,r.field].join(' ')).includes(nq)):true;
-    return Object.assign({},c,{members,_match:!nq||own||memberMatch});
-  }).filter(c=>c._match);
+  return (state.searchCommittees||[]).filter(c=>{
+    if(field&&c.field!==field)return false;
+    if(!nq)return true;
+    return normSearch(c.name).includes(nq)||normSearch(c.code).includes(nq);
+  }).map(c=>Object.assign({},c,{members:(byCommittee[c.id]||[]).filter(r=>!field||r.field===field)})).filter(c=>c.members.length||!nq);
 }
-function renderCommitteeResults(q){
-  const list=committeeSearchRows(q);
-  $('committeeSearchResults').innerHTML=list.map(c=>{
+function renderCommitteeCards(targetId,list,q,showPointsOnOpen){
+  const target=$(targetId);
+  target.innerHTML=list.map(c=>{
     const members=[...c.members].sort((a,b)=>a.role.localeCompare(b.role,'ms')||a.name.localeCompare(b.name,'ms'));
-    const rows=members.map(r=>`<tr><td>${esc(r.role)}</td><td><button type="button" class="btn small committee-member" data-person="${esc(r.personId)}" style="padding:3px 7px">${esc(r.name)}</button></td><td>${r.points} mata</td></tr>`).join('');
-    return `<details class="search-committee" ${q?'open':''}><summary><div><div class="search-committee-title">${esc(c.name)}</div><div class="search-committee-meta">${esc(c.field||'Tiada bidang')}${c.code?' · '+esc(c.code):''} · ${members.length} ahli</div></div><span class="search-committee-chevron">⌄</span></summary><div class="search-committee-body">${members.length?`<table class="search-member-table"><thead><tr><th>Jawatan / Peranan</th><th>Nama</th><th>Mata</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Belum ada pelantikan aktif.</div>'}</div></details>`;
+    const rows=members.map(r=>`<tr><td>${esc(r.role)}</td><td><button type="button" class="btn small committee-member" data-person="${esc(r.personId)}" style="padding:3px 7px">${esc(r.name)}</button></td></tr>`).join('');
+    return `<details class="search-committee" ${q?'open':''}><summary><div><div class="search-committee-title">${esc(c.name)}</div><div class="search-committee-meta">${esc(c.field||'Tiada bidang')}${c.code?' · '+esc(c.code):''} · ${members.length} ahli</div></div><span class="search-committee-chevron">⌄</span></summary><div class="search-committee-body">${members.length?`<table class="search-member-table"><thead><tr><th>Jawatan / Peranan</th><th>Nama</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Belum ada pelantikan aktif.</div>'}</div></details>`;
   }).join('')||'<div class="panel empty">Tiada jawatankuasa sepadan.</div>';
-  $('teacherSearchCount').textContent=list.length+' jawatankuasa ditemui';
-  document.querySelectorAll('.committee-member').forEach(b=>b.onclick=e=>{e.preventDefault();openTeacher(b.dataset.person)});
+  target.querySelectorAll('.committee-member').forEach(b=>b.onclick=e=>{e.preventDefault();openTeacher(b.dataset.person,!!showPointsOnOpen)});
 }
 function updateMainKpis(){
-  const all=state.teachers;$('kpiTeachers').textContent=all.length;$('kpiHighest').textContent=all.length?Math.max(...all.map(x=>x.points)):0;$('kpiAvg').textContent=all.length?(all.reduce((s,x)=>s+x.points,0)/all.length).toFixed(1):'0';$('kpiTasks').textContent=all.reduce((s,x)=>s+x.count,0);
+  const all=state.teachers;$('kpiTeachers').textContent=all.length;$('kpiHighest').textContent=all.length?Math.max(...all.map(x=>Number(x.points||0))):0;$('kpiAvg').textContent=all.length?(all.reduce((s,x)=>s+Number(x.points||0),0)/all.length).toFixed(1):'0';$('kpiTasks').textContent=all.reduce((s,x)=>s+Number(x.count||0),0);
 }
 function renderTeachers(){
+  if(!state.boot?.user?.isAdmin)return;
   updateMainKpis();
-  const q=$('teacherSearch').value.trim(),mode=resolvedSearchMode();
-  document.querySelectorAll('.search-mode-button').forEach(b=>b.classList.toggle('active',b.dataset.searchMode===state.searchMode));
-  $('teacherSort').classList.toggle('hidden',mode==='committee');
-  $('personSearchResults').classList.toggle('hidden',mode!=='person');$('committeeSearchResults').classList.toggle('hidden',mode!=='committee');
-  if(mode==='committee'){
-    $('teacherSearchHint').textContent='Paparan Jawatankuasa: semua ahli dan jawatan dipaparkan bersama.';
-    renderCommitteeResults(q);
+  const q=$('teacherSearch').value.trim(),kind=adminSearchKind(q);
+  $('personSearchResults').classList.toggle('hidden',kind!=='weighted');$('adminRoleResults').classList.toggle('hidden',kind!=='role');$('committeeSearchResults').classList.toggle('hidden',kind!=='committee');$('teacherSort').classList.toggle('hidden',kind!=='weighted');
+  if(kind==='committee'){
+    const list=committeeRowsForQuery(q);$('teacherSearchHint').textContent='Jawatankuasa lengkap: ahli dan jawatan dipaparkan tanpa pemberatan.';$('teacherSearchCount').textContent=list.length+' jawatankuasa ditemui';renderCommitteeCards('committeeSearchResults',list,q,false);
+  }else if(kind==='role'){
+    $('teacherSearchHint').textContent='Padanan jawatan/peranan dan jawatankuasa dipaparkan tanpa pemberatan.';renderAdminRolePeople(q);
   }else{
-    $('teacherSearchHint').textContent=q?'Paparan Individu: padanan nama, jawatan hakiki, jawatankuasa dan peranan.':'Cari nama guru, nama jawatankuasa atau jawatan/peranan.';
-    renderPersonResults(q);
+    $('teacherSearchHint').textContent=q?'Carian nama guru: ranking dan mata kekal dipaparkan.':'Cari nama guru, jawatan/peranan atau jawatankuasa.';renderWeightedPeople(q);
   }
 }
 let teacherSearchTimer=null;
-$('teacherSearch').oninput=()=>{
-  clearTimeout(teacherSearchTimer);const q=$('teacherSearch').value.trim();
-  if(!q){renderTeachers();return}
-  teacherSearchTimer=setTimeout(async()=>{try{await ensureSearchIndex();renderTeachers()}catch(e){showError(e)}},160);
-};
+$('teacherSearch').oninput=()=>{clearTimeout(teacherSearchTimer);const q=$('teacherSearch').value.trim();if(!q){renderTeachers();return}teacherSearchTimer=setTimeout(async()=>{try{await ensureSearchIndex();renderTeachers()}catch(e){showError(e)}},140)};
 $('teacherSort').onchange=renderTeachers;
-document.querySelectorAll('.search-mode-button').forEach(b=>b.onclick=async()=>{
-  state.searchMode=b.dataset.searchMode;
-  try{if(state.searchMode==='committee'||$('teacherSearch').value.trim())await ensureSearchIndex();renderTeachers()}catch(e){showError(e)}
-});
-async function openTeacher(id){openModal('detailModal','closeDetail');$('detailName').textContent='Memuatkan…';$('taskList').innerHTML='<div class="loading">Memuatkan pelantikan guru…</div>';try{const d=await bridge('jtGetTeacherDetail',state.token,id);state.currentTeacher=d;$('detailName').textContent=d.teacher.name;$('detailJob').textContent=d.teacher.jobTitle;$('detailPoints').textContent=d.teacher.totalPoints;$('detailTasks').textContent=d.teacher.taskCount;$('taskList').innerHTML=d.assignments.map(a=>`<div class="task"><div class="task-title">${esc(a.committee)}</div><div class="sub">${esc(a.field||'')}</div><div class="task-row"><span>${esc(a.role)}</span><span class="task-score">${a.points} mata</span></div>${a.note?`<div class="sub" style="margin-top:6px">${esc(a.note)}</div>`:''}</div>`).join('')||'<div class="empty">Tiada rekod pelantikan.</div>'}catch(e){$('detailName').textContent='Ralat';$('taskList').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}}
+
+async function openTeacher(id,showPoints=false){
+  openModal('detailModal','closeDetail');$('detailName').textContent='Memuatkan…';$('taskList').innerHTML='<div class="loading">Memuatkan pelantikan individu…</div>';
+  try{
+    const d=await bridge('jtGetTeacherDetail',state.token,id);state.currentTeacher=d;
+    const weighted=!!showPoints&&!!state.boot?.user?.isAdmin&&d.teacher.totalPoints!==undefined;
+    $('detailName').textContent=d.teacher.name;$('detailJob').textContent=[d.teacher.group,d.teacher.jobTitle].filter(Boolean).join(' · ');
+    $('detailPointsCard').classList.toggle('hidden',!weighted);$('detailKpi').style.gridTemplateColumns=weighted?'repeat(2,1fr)':'1fr';if(weighted)$('detailPoints').textContent=Number(d.teacher.totalPoints||0);$('detailTasks').textContent=Number(d.teacher.taskCount||0);
+    $('taskList').innerHTML=d.assignments.map(a=>`<div class="task"><div class="task-title">${esc(a.committee)}</div><div class="sub">${esc(a.field||'')}</div><div class="task-row"><span>${esc(a.role)}</span>${weighted&&a.points!==undefined?`<span class="task-score">${Number(a.points||0)} mata</span>`:''}</div>${a.note?`<div class="sub" style="margin-top:6px">${esc(a.note)}</div>`:''}</div>`).join('')||'<div class="empty">Tiada rekod pelantikan.</div>';
+  }catch(e){$('detailName').textContent='Ralat';$('taskList').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}
+}
 $('closeDetail').onclick=()=>closeModal('detailModal');$('detailModal').onclick=e=>{if(e.target===$('detailModal'))closeModal('detailModal')};
 
-function portfolioResolvedMode(){
-  if(state.portfolioMode!=='auto')return state.portfolioMode;
-  const q=normSearch($('portfolioSearch').value);if(!q)return 'person';
-  const personHit=state.teachers.some(t=>normSearch(t.name+' '+(t.jobTitle||'')).includes(q));
-  const committeeHit=(state.searchCommittees||[]).some(x=>normSearch([x.name,x.code,x.field].join(' ')).includes(q));
-  if(committeeHit&&!personHit)return 'committee';
-  if(committeeHit&&(q.includes('jawatankuasa')||q.includes('panitia')||q.startsWith('jm')))return 'committee';
-  return 'person';
+function populatePublicFields(){
+  const fields=[...new Set((state.searchCommittees||[]).map(x=>String(x.field||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ms')),current=$('publicField').value;
+  $('publicField').innerHTML='<option value="">Semua bidang</option>'+fields.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(fields.includes(current))$('publicField').value=current;
 }
-function populatePortfolioFields(){
-  const fields=[...new Set((state.searchCommittees||[]).map(x=>String(x.field||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ms'));
-  const current=$('portfolioField').value;
-  $('portfolioField').innerHTML='<option value="">Semua bidang</option>'+fields.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  if(fields.includes(current))$('portfolioField').value=current;
+function publicPersonItems(q,field){
+  const nq=normSearch(q),byPerson=state.searchByPerson||{};
+  return (state.searchPeople||[]).map(p=>{
+    let rows=(byPerson[p.id]||[]).filter(r=>!field||r.field===field);const direct=!!nq&&normSearch([p.name,p.jobTitle,p.group].join(' ')).includes(nq);
+    if(nq&&!direct)rows=rows.filter(r=>normSearch([r.name,r.committee,r.role,r.field].join(' ')).includes(nq));
+    return Object.assign({},p,{rows,direct});
+  }).filter(p=>p.rows.length).sort((a,b)=>a.name.localeCompare(b.name,'ms'));
 }
-function portfolioPersonItems(){
-  const q=normSearch($('portfolioSearch').value),field=$('portfolioField').value,byPerson=state.searchByPerson||{};
-  return state.teachers.map(t=>{
-    let rows=(byPerson[t.id]||[]).filter(r=>!field||r.field===field);
-    const direct=normSearch(t.name+' '+(t.jobTitle||'')).includes(q);
-    if(q)rows=rows.filter(r=>normSearch([r.name,r.committee,r.role,r.field].join(' ')).includes(q));
-    return {id:t.id,name:t.name,jobTitle:t.jobTitle||'',rows,direct};
-  }).filter(x=>!q?(x.rows.length>0):(x.direct||x.rows.length>0)).sort((a,b)=>a.name.localeCompare(b.name,'ms'));
+function renderPublicPeople(q,field){
+  const items=publicPersonItems(q,field);
+  $('publicPersonBody').innerHTML=items.map(p=>{const bits=p.rows.slice(0,2).map(r=>r.role+' · '+r.committee),more=p.rows.length-bits.length,sub=q?(bits.join(' | ')+(more>0?' · +'+more+' lagi':'')):'Buka senarai pelantikan';return `<tr class="teacher-row" tabindex="0" role="button" data-id="${esc(p.id)}"><td><div class="name">${esc(p.name)}</div><div class="${q?'match-text':'sub'}">${esc(sub)}</div></td><td><span class="pill">${esc(p.group||'')}</span></td><td>${esc(p.jobTitle||'')}</td><td>${p.rows.length}</td></tr>`}).join('');
+  $('publicPersonEmpty').classList.toggle('hidden',items.length>0);$('publicSearchCount').textContent=items.length+' individu ditemui';
+  document.querySelectorAll('#publicPersonResults .teacher-row').forEach(r=>{r.onclick=()=>openTeacher(r.dataset.id,false);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTeacher(r.dataset.id,false)}}});
 }
-function portfolioCommitteeItems(){
-  const q=normSearch($('portfolioSearch').value),field=$('portfolioField').value,byCommittee=state.searchByCommittee||{};
-  return (state.searchCommittees||[]).map(x=>{
-    if(field&&x.field!==field)return null;
-    const rows=byCommittee[x.id]||[],own=normSearch([x.name,x.code,x.field].join(' ')).includes(q);
-    const memberHit=!q||rows.some(r=>normSearch([r.name,r.role,r.field].join(' ')).includes(q));
-    return (!q||own||memberHit)?Object.assign({},x,{rows}):null;
-  }).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'ms'));
-}
-function renderPortfolioPersons(items){
-  $('portfolioCards').innerHTML=items.map(p=>{
-    const groups={};p.rows.forEach(r=>(groups[r.field||'Lain-lain']||(groups[r.field||'Lain-lain']=[])).push(r));
-    const blocks=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0],'ms')).map(([field,rows])=>`<div class="portfolio-block"><div class="portfolio-block-title">${esc(field)}</div><ol class="portfolio-entries">${rows.sort((a,b)=>a.committee.localeCompare(b.committee,'ms')).map(r=>`<li><span class="portfolio-comm">${esc(r.committee)}</span> — <span class="portfolio-role">${esc(r.role)}</span></li>`).join('')}</ol></div>`).join('');
-    return `<details class="portfolio-card" ${$('portfolioSearch').value.trim()?'open':''}><summary><div><div class="portfolio-card-title">${esc(p.name)}</div><div class="portfolio-card-meta">${esc(p.jobTitle||'Guru')} · ${p.rows.length} pelantikan dipaparkan</div></div><span class="portfolio-card-chevron">⌄</span></summary><div class="portfolio-card-body">${blocks||'<div class="empty">Tiada pelantikan untuk tapisan ini.</div>'}</div></details>`;
-  }).join('')||'<div class="portfolio-empty">Tiada individu sepadan.</div>';
-}
-function renderPortfolioCommittees(items){
-  $('portfolioCards').innerHTML=items.map(c=>{
-    const rows=[...c.rows].sort((a,b)=>a.role.localeCompare(b.role,'ms')||a.name.localeCompare(b.name,'ms'));
-    return `<details class="portfolio-card" ${$('portfolioSearch').value.trim()?'open':''}><summary><div><div class="portfolio-card-title">${esc(c.name)}</div><div class="portfolio-card-meta">${esc(c.field||'Tiada bidang')}${c.code?' · '+esc(c.code):''} · ${rows.length} ahli</div></div><span class="portfolio-card-chevron">⌄</span></summary><div class="portfolio-card-body">${rows.length?`<table class="portfolio-table"><thead><tr><th>Peranan / Jawatan</th><th>Nama ahli</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.role)}</td><td><button class="portfolio-person-link" data-person="${esc(r.personId)}">${esc(r.name)}</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Belum ada pelantikan aktif.</div>'}</div></details>`;
-  }).join('')||'<div class="portfolio-empty">Tiada jawatankuasa sepadan.</div>';
-  document.querySelectorAll('#portfolioCards .portfolio-person-link').forEach(b=>b.onclick=()=>openTeacher(b.dataset.person));
-}
-function portfolioText(mode,items){
-  if(mode==='committee')return items.map(c=>[c.name,c.field?('Bidang: '+c.field):'',...(c.rows||[]).sort((a,b)=>a.role.localeCompare(b.role,'ms')).map(r=>r.role+' : '+r.name)].filter(Boolean).join('\n')).join('\n\n-------------------\n\n');
-  return items.map(p=>[p.name,p.jobTitle,...p.rows.map(r=>r.committee+' — '+r.role)].filter(Boolean).join('\n')).join('\n\n-------------------\n\n');
+function updatePublicKpis(){
+  const fields=new Set((state.searchCommittees||[]).map(x=>x.field).filter(Boolean));$('publicPeopleKpi').textContent=(state.searchPeople||[]).length;$('publicCommitteeKpi').textContent=(state.searchCommittees||[]).length;$('publicFieldKpi').textContent=fields.size;$('publicTaskKpi').textContent=(state.searchRecords||[]).length;
 }
 function renderPortfolio(){
-  const mode=portfolioResolvedMode();
-  document.querySelectorAll('.portfolio-mode').forEach(b=>b.classList.toggle('active',b.dataset.portfolioMode===state.portfolioMode));
-  if(mode==='committee'){
-    const items=portfolioCommitteeItems();state._portfolioVisible=items;state._portfolioVisibleMode=mode;
-    $('portfolioResultTitle').textContent='Senarai mengikut JAWATANKUASA';$('portfolioHint').textContent='Setiap kad ialah satu jawatankuasa lengkap dengan ahli dan peranan.';$('portfolioCount').textContent=items.length+' jawatankuasa ditemui';renderPortfolioCommittees(items);
-  }else{
-    const items=portfolioPersonItems();state._portfolioVisible=items;state._portfolioVisibleMode=mode;
-    $('portfolioResultTitle').textContent='Senarai mengikut INDIVIDU';$('portfolioHint').textContent='Setiap kad individu memaparkan jawatankuasa dan peranan mengikut Bidang.';$('portfolioCount').textContent=items.length+' individu ditemui';renderPortfolioPersons(items);
-  }
+  const q=$('publicSearch').value.trim(),field=$('publicField').value,mode=autoSearchMode(q,state.searchPeople||[]);
+  $('publicPersonResults').classList.toggle('hidden',mode!=='person');$('publicCommitteeResults').classList.toggle('hidden',mode!=='committee');
+  if(mode==='committee'){const list=committeeRowsForQuery(q,field);$('publicSearchHint').textContent='Paparan jawatankuasa lengkap dengan semua ahli dan peranan.';$('publicSearchCount').textContent=list.length+' jawatankuasa ditemui';renderCommitteeCards('publicCommitteeResults',list,q,false)}
+  else{$('publicSearchHint').textContent=q?'Padanan nama, jawatan/peranan dan jawatankuasa mengikut individu.':'Cari nama individu, jawatan/peranan atau nama jawatankuasa.';renderPublicPeople(q,field)}
 }
 async function openPortfolioTab(){
-  if(!state.portfolioReady){$('portfolioCards').innerHTML='<div class="loading">Memuatkan jawatankuasa dan pelantikan…</div>';await ensureSearchIndex();populatePortfolioFields();state.portfolioReady=true}
-  renderPortfolio();
+  if(!state.portfolioReady){$('publicPersonBody').innerHTML='<tr><td colspan="4"><div class="loading">Memuatkan jawatankuasa dan pelantikan…</div></td></tr>';await ensureSearchIndex();populatePublicFields();updatePublicKpis();state.portfolioReady=true}renderPortfolio();
 }
-let portfolioSearchTimer=null;
-$('portfolioSearch').oninput=()=>{clearTimeout(portfolioSearchTimer);portfolioSearchTimer=setTimeout(renderPortfolio,100)};
-$('portfolioField').onchange=renderPortfolio;
-document.querySelectorAll('.portfolio-mode').forEach(b=>b.onclick=()=>{state.portfolioMode=b.dataset.portfolioMode;renderPortfolio()});
-$('portfolioExpand').onclick=()=>document.querySelectorAll('#portfolioCards>.portfolio-card').forEach(x=>x.open=true);
-$('portfolioCollapse').onclick=()=>document.querySelectorAll('#portfolioCards>.portfolio-card').forEach(x=>x.open=false);
-$('portfolioCopyAll').onclick=async()=>{
-  const items=state._portfolioVisible||[];if(!items.length)return showError('Tiada rekod untuk disalin.');
-  const value=portfolioText(state._portfolioVisibleMode||'person',items);
-  try{await navigator.clipboard.writeText(value);toast('Semua rekod dipaparkan telah disalin.')}catch(e){showError('Tidak dapat menyalin ke clipboard.')}
-};
+let publicSearchTimer=null;
+$('publicSearch').oninput=()=>{clearTimeout(publicSearchTimer);publicSearchTimer=setTimeout(renderPortfolio,90)};
+$('publicField').onchange=renderPortfolio;
 
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{
+  const tab=b.dataset.tab,isAdmin=!!state.boot?.user?.isAdmin;if((tab==='teachers'||tab==='admin')&&!isAdmin)return showError('Paparan ini hanya untuk Pengurusan dan Pentadbir Sistem.');
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
-  const tab=b.dataset.tab;
-  $('teachersTab').classList.toggle('hidden',tab!=='teachers');
-  $('portfolioTab').classList.toggle('hidden',tab!=='portfolio');
-  $('adminPanel').classList.toggle('hidden',tab!=='admin');
-  if(tab==='portfolio'){try{await openPortfolioTab()}catch(e){showError(e)}}
-  if(tab==='admin')showAdminHome();
+  $('teachersTab').classList.toggle('hidden',tab!=='teachers');$('portfolioTab').classList.toggle('hidden',tab!=='portfolio');$('adminPanel').classList.toggle('hidden',tab!=='admin');
+  if(tab==='portfolio'){try{await openPortfolioTab()}catch(e){showError(e)}}if(tab==='teachers'){try{if($('teacherSearch').value.trim())await ensureSearchIndex();renderTeachers()}catch(e){showError(e)}}if(tab==='admin')showAdminHome();
 });
 function ensureAdminState(){if(!state.admin)state.admin={rules:null,teachers:null,committees:null};return state.admin}
 function showAdminHome(){$('adminHome').classList.remove('hidden');['adminRulesPage','adminTeachersPage','adminCommitteesPage'].forEach(id=>$(id).classList.add('hidden'))}
