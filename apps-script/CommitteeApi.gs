@@ -128,21 +128,43 @@ function jtPublicUser_(ctx){ return {name:ctx.user.name,email:ctx.user.email,cat
 
 function jtGetBootstrap(token,includeSearch){
   const ctx=jtRequireUser_(token),stats=jtTeacherStats_();
-  const out={ok:true,user:jtPublicUser_(ctx),teachers:stats.list,school:'SMK Bandar Baru Sungai Lalang',year:'2026'};
+  const publicTeachers=stats.list.map(t=>({id:t.id,name:t.name,jobTitle:t.jobTitle,count:t.count}));
+  const out={
+    ok:true,
+    user:jtPublicUser_(ctx),
+    teachers:ctx.isAdmin?stats.list:publicTeachers,
+    school:'SMK Bandar Baru Sungai Lalang',
+    year:'2026'
+  };
   if(includeSearch){
-    const activeIds={};stats.list.forEach(t=>activeIds[t.id]=true);
-    const rules=jtRuleMap_(),ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers);
+    const pd=jtRows_(JT_SHEETS.PEOPLE),pi=jtIndex_(pd.headers);
+    out.searchPeople=pd.rows
+      .filter(r=>jtBool_(r[pi.Aktif])&&(String(r[pi.Kumpulan]||'')==='Guru'||String(r[pi.Kumpulan]||'')==='AKP'))
+      .map(r=>({
+        id:String(r[pi.PersonID]||''),
+        name:String(r[pi.Nama]||''),
+        group:String(r[pi.Kumpulan]||''),
+        jobTitle:String(r[pi.JawatanHakiki]||'')
+      }))
+      .sort((a,b)=>a.name.localeCompare(b.name,'ms'));
+    const activeIds={};out.searchPeople.forEach(p=>activeIds[p.id]=true);
+
+    const rules=ctx.isAdmin?jtRuleMap_():null,ad=jtRows_(JT_SHEETS.ASSIGNMENTS),ai=jtIndex_(ad.headers);
     out.searchRecords=ad.rows
       .filter(r=>jtBool_(r[ai.Aktif])&&activeIds[String(r[ai.PersonID]||'')])
-      .map(r=>({
-        personId:String(r[ai.PersonID]||''),
-        name:String(r[ai.Nama]||''),
-        committeeId:String(r[ai.CommitteeID]||''),
-        committee:String(r[ai.Jawatankuasa]||''),
-        role:String(r[ai.Peranan]||''),
-        points:Number(rules[String(r[ai.KodSkor]||'')]||0),
-        field:String(r[ai.Bidang]||'')
-      }));
+      .map(r=>{
+        const item={
+          personId:String(r[ai.PersonID]||''),
+          name:String(r[ai.Nama]||''),
+          committeeId:String(r[ai.CommitteeID]||''),
+          committee:String(r[ai.Jawatankuasa]||''),
+          role:String(r[ai.Peranan]||''),
+          field:String(r[ai.Bidang]||'')
+        };
+        if(ctx.isAdmin)item.points=Number(rules[String(r[ai.KodSkor]||'')]||0);
+        return item;
+      });
+
     const cd=jtRows_(JT_SHEETS.COMMITTEES),ci=jtIndex_(cd.headers);
     out.searchCommittees=cd.rows
       .filter(r=>jtBool_(r[ci.Aktif]))
