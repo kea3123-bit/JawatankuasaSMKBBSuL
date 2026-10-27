@@ -38,7 +38,7 @@
   <div class="toolbar" style="margin-bottom:7px"><input id="publicSearch" class="search" type="search" placeholder="Cari nama / jawatankuasa / jawatan..." autocomplete="off" aria-label="Cari nama, jawatankuasa atau jawatan"><select id="publicField" style="max-width:230px"><option value="">Semua bidang</option></select></div>
   <div class="search-hint"><span id="publicSearchHint">Carian automatik seperti MyPortfolio asal: nama/jawatan → individu, nama/kod jawatankuasa → jawatankuasa lengkap.</span> <span class="result-count" id="publicSearchCount"></span></div>
 </div>
-<div id="publicPersonResults" class="panel table-wrap"><table class="table"><thead><tr><th>Individu</th><th style="width:120px">Kumpulan</th><th>Jawatan Hakiki</th><th style="width:135px">Bil. Pelantikan</th></tr></thead><tbody id="publicPersonBody"></tbody></table><div id="publicPersonEmpty" class="empty hidden">Tiada individu sepadan.</div></div>
+<div id="publicPersonResults" class="panel table-wrap"><table class="table"><thead><tr><th>Individu</th><th style="width:120px">Kumpulan</th><th>Jawatan Hakiki</th></tr></thead><tbody id="publicPersonBody"></tbody></table><div id="publicPersonEmpty" class="empty hidden">Tiada individu sepadan.</div></div>
 <div id="publicCommitteeResults" class="committee-results hidden"></div>
 </section>
 <section id="adminPanel" class="hidden">
@@ -332,7 +332,7 @@ function publicPersonItems(q,field){
 }
 function renderPublicPeople(q,field){
   const items=publicPersonItems(q,field);
-  $('publicPersonBody').innerHTML=items.map(p=>{const bits=p.rows.slice(0,2).map(r=>r.role+' · '+r.committee),more=p.rows.length-bits.length,sub=q?(bits.join(' | ')+(more>0?' · +'+more+' lagi':'')):'Buka senarai pelantikan';return `<tr class="teacher-row" tabindex="0" role="button" data-id="${esc(p.id)}"><td><div class="name">${esc(p.name)}</div><div class="${q?'match-text':'sub'}">${esc(sub)}</div></td><td><span class="pill">${esc(p.group||'')}</span></td><td>${esc(p.jobTitle||'')}</td><td>${p.rows.length}</td></tr>`}).join('');
+  $('publicPersonBody').innerHTML=items.map(p=>{const bits=p.rows.slice(0,2).map(r=>r.role+' · '+r.committee),more=p.rows.length-bits.length,sub=q?(bits.join(' | ')+(more>0?' · +'+more+' lagi':'')):'Buka senarai pelantikan';return `<tr class="teacher-row" tabindex="0" role="button" data-id="${esc(p.id)}"><td><div class="name">${esc(p.name)}</div><div class="${q?'match-text':'sub'}">${esc(sub)}</div></td><td><span class="pill">${esc(p.group||'')}</span></td><td>${esc(p.jobTitle||'')}</td></tr>`}).join('');
   $('publicPersonEmpty').classList.toggle('hidden',items.length>0);$('publicSearchCount').textContent=items.length+' individu ditemui';
   document.querySelectorAll('#publicPersonResults .teacher-row').forEach(r=>{r.onclick=()=>openTeacher(r.dataset.id,false);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTeacher(r.dataset.id,false)}}});
 }
@@ -346,7 +346,7 @@ function renderPortfolio(){
   else{$('publicSearchHint').textContent=q?'Padanan nama, jawatan/peranan dan jawatankuasa mengikut individu.':'Cari nama individu, jawatan/peranan atau nama jawatankuasa.';renderPublicPeople(q,field)}
 }
 async function openPortfolioTab(){
-  if(!state.portfolioReady){$('publicPersonBody').innerHTML='<tr><td colspan="4"><div class="loading">Memuatkan jawatankuasa dan pelantikan…</div></td></tr>';await ensureSearchIndex();populatePublicFields();updatePublicKpis();state.portfolioReady=true}renderPortfolio();
+  if(!state.portfolioReady){$('publicPersonBody').innerHTML='<tr><td colspan="3"><div class="loading">Memuatkan jawatankuasa dan pelantikan…</div></td></tr>';await ensureSearchIndex();populatePublicFields();updatePublicKpis();state.portfolioReady=true}renderPortfolio();
 }
 let publicSearchTimer=null;
 $('publicSearch').oninput=()=>{clearTimeout(publicSearchTimer);publicSearchTimer=setTimeout(renderPortfolio,90)};
