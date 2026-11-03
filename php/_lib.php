@@ -62,6 +62,7 @@ function jt_user(string $token,bool $admin=false): array {
     if ($token==='') throw new RuntimeException('Sesi tidak sah. Sila log masuk semula.');
     $r=jt_eke_rpc('resumeSession',[$token,'',[]]); $u=$r['boot']['user']??null;
     if (!is_array($u)||empty($u['email'])) throw new RuntimeException('Sesi eKeberadaan tidak sah.');
+    if (!empty($u['mustChangePassword'])) throw new RuntimeException('PIN sementara mesti ditukar dahulu dalam eKeberadaan sebelum membuka Jawatankuasa.');
     $isManagement=jt_norm($u['category']??'')==='PENGURUSAN'; $isSystemAdmin=!empty($u['isAdmin']);
     $u['isAdmin']=$isManagement||$isSystemAdmin;
     $u['adminSource']=$isManagement&&$isSystemAdmin?'Pengurusan + Pentadbir Sistem':($isSystemAdmin?'Pentadbir Sistem':($isManagement?'Pengurusan':''));
