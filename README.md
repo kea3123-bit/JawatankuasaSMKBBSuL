@@ -109,3 +109,13 @@ Pengurusan / Pentadbir Sistem only. Keeps the weighted teacher view and point to
 
 ### Pentadbiran
 Lazy-loaded administration for point rules, teachers/assignments and committees.
+
+
+## Delete / archive behavior
+
+Administration uses safe delete semantics to preserve historical data:
+
+- Teacher assignment **Padam** sets the assignment inactive and recalculates teacher totals; the UI offers Undo.
+- Committee **Padam** is allowed only when there are no active assignments using that committee, then the committee is soft-deleted (`aktif=0`).
+- Point-rule **Padam** is allowed only when there are no active assignments using that rule, then the rule is soft-deleted (`aktif=0`).
+- Historical/inactive records remain in MySQL for audit and future session migration.
