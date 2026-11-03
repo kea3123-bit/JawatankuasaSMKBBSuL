@@ -101,7 +101,7 @@
 <script>
 const AUTH_API='https://ppdkmy.edu.my/ekeberadaansmkbbsul/api.php';
 const DATA_API='https://ppdkmy.edu.my/jawatankuasabbsul/api.php';
-const AUTH_METHODS=new Set(['resumeSession','resumeTrustedDevice','checkDelimaAccount','loginWithPin','setFirstPin','logoutApp']);
+
 const state={token:'',device:'',boot:null,teachers:[],admin:null,selectedAccount:null,changeTicket:'',currentTeacher:null,adminTeacherId:'',committeePage:1,editingAssignment:null,lastFocus:null,searchLoaded:false,searchLoading:null,searchPeople:[],searchRecords:[],searchCommittees:[],searchByPerson:null,searchByCommittee:null,portfolioReady:false};
 const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showToast(msg,type='success',actionLabel='',action=null){
@@ -169,23 +169,31 @@ function endGlobalLoading(){
 
 function bridge(method,...args){
   beginGlobalLoading(method);
-  const endpoint=AUTH_METHODS.has(method)?AUTH_API:DATA_API;
+  const endpoint=String(method||'').startsWith('jt')?DATA_API:AUTH_API;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),30000);
   return fetch(endpoint,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
+    mode:'cors',
     credentials:'omit',
     cache:'no-store',
-    body:JSON.stringify({fn:method,args})
+    body:JSON.stringify({fn:method,args}),
+    signal:controller.signal
   }).then(async response=>{
     const obj=await response.json().catch(()=>({ok:false,error:'HTTP '+response.status+': respons server bukan JSON.'}));
-    if(!response.ok||!obj.ok)throw new Error(obj.error||'Request failed');
+    if(!response.ok||!obj.ok)throw new Error(obj.error||('HTTP '+response.status));
     return obj.result;
-  }).finally(endGlobalLoading);
+  }).catch(err=>{
+    if(err?.name==='AbortError')throw new Error('Permintaan mengambil masa terlalu lama. Semak API PHP/MySQL dan cuba semula.');
+    throw err;
+  }).finally(()=>{clearTimeout(timer);endGlobalLoading()});
 }
+
 async function bootstrapJt(){const b=await bridge('jtGetBootstrap',state.token);state.boot=b;state.teachers=b.teachers||[];renderUser();$('loginPage').classList.add('hidden');$('app').classList.remove('hidden');await openPortfolioTab();if(b.user?.isAdmin)renderTeachers()}
 async function tryResume(){const token=loadSession(),device=loadDevice();if(token){try{const r=await bridge('resumeSession',token,device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){clearSession()}}if(device){try{const r=await bridge('resumeTrustedDevice',device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){}}return false}
 function showStep(id){['stepEmail','stepPin','stepSetPin'].forEach(x=>$(x).classList.toggle('hidden',x!==id));loginError('')}
-$('emailBtn').onclick=async()=>{const email=$('email').value.trim();if(!email)return loginError('Masukkan emel DELIMa.');$('emailBtn').disabled=true;try{const r=await bridge('checkDelimaAccount',email,clientInfo());state.selectedAccount=r.user;if(!r.pinReady)throw new Error(r.message||'Rekod PIN tidak dijumpai. Hubungi Pentadbir Sistem eKeberadaan.');$('accountText').innerHTML='<b>'+esc(r.user.name)+'</b><br>'+esc(r.user.email);showStep('stepPin');$('pin').focus()}catch(e){loginError(errMsg(e))}finally{$('emailBtn').disabled=false}};
+$('emailBtn').onclick=async()=>{const email=$('email').value.trim();if(!email)return loginError('Masukkan emel DELIMa.');$('emailBtn').disabled=true;try{const r=await bridge('checkDelimaAccount',email,clientInfo());state.selectedAccount=r.user;if(r.directPinSetup){state.changeTicket=r.changeTicket||'';$('setupText').textContent=r.message||'Cipta PIN 6 digit.';showStep('stepSetPin');$('newPin').focus();return}if(!r.pinReady)throw new Error(r.message||'Rekod PIN tidak dijumpai. Hubungi Pentadbir Sistem eKeberadaan.');$('accountText').innerHTML='<b>'+esc(r.user.name)+'</b><br>'+esc(r.user.email);showStep('stepPin');$('pin').focus()}catch(e){loginError(errMsg(e))}finally{$('emailBtn').disabled=false}};
 $('pinBtn').onclick=async()=>{const pin=$('pin').value.replace(/\D/g,'');if(pin.length!==6)return loginError('PIN mesti 6 digit.');$('pinBtn').disabled=true;try{const r=await bridge('loginWithPin',state.selectedAccount.email,pin,clientInfo(),loadDevice());saveSession(r);await bootstrapJt()}catch(e){loginError(errMsg(e));$('pin').value=''}finally{$('pinBtn').disabled=false}};
 $('setPinBtn').onclick=async()=>{const a=$('newPin').value.replace(/\D/g,''),b=$('confirmPin').value.replace(/\D/g,'');if(a.length!==6||a!==b)return loginError('PIN mesti 6 digit dan kedua-duanya sama.');$('setPinBtn').disabled=true;try{const r=await bridge('setFirstPin',state.changeTicket,a,b,clientInfo(),loadDevice());saveSession(r);await bootstrapJt()}catch(e){loginError(errMsg(e))}finally{$('setPinBtn').disabled=false}};
 $('backBtn').onclick=$('backBtn2').onclick=()=>{state.selectedAccount=null;state.changeTicket='';showStep('stepEmail')};
