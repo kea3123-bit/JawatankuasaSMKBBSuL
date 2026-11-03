@@ -123,7 +123,7 @@ function jt_admin_update_point(string $token,string $code,$points,string $newNam
     try{
         $count=(int)(jt_one('SELECT COUNT(*) c FROM pelantikan WHERE peranan=? OR kod_skor=?',[$code,$code])['c']??0);
         jt_exec('UPDATE point_rules SET kod_skor=?,mata=?,sumber=NULL,catatan=NULL WHERE kod_skor=?',[$newName,$points,$code]);
-        jt_exec('UPDATE pelantikan SET peranan=?,mata=?,updated_at=?,updated_by=? WHERE peranan=? OR kod_skor=?',[$newName,$points,jt_now(),$u['email'],$code,$newName]);
+        jt_exec('UPDATE pelantikan SET peranan=?,kod_skor=?,mata=?,updated_at=?,updated_by=? WHERE peranan=? OR kod_skor=?',[$newName,$newName,$points,jt_now(),$u['email'],$code,$newName]);
         $teachers=jt_rebuild_stats();
         jt_audit($u,'UPDATE_POINT_RULE','POINT_RULE',$code,['before'=>['name'=>$code,'points'=>(float)$old['mata']],'after'=>['name'=>$newName,'points'=>$points],'assignmentsUpdated'=>$count]);
         $pdo->commit();
