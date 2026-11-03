@@ -4,6 +4,17 @@ Sistem Jawatankuasa / MyPortfolio dan pemberatan tugas SMK Bandar Baru Sungai La
 
 ## Production architecture
 
+### Current cut-over status
+
+- Browser login is now direct JSON RPC to the eKeberadaan MySQL API.
+- All `jt*` calls are direct JSON RPC to the Jawatankuasa PHP/MySQL API.
+- The legacy Apps Script iframe/form bridge is no longer used by `index.html`.
+- eKeberadaan remains the single authentication/session authority; Jawatankuasa stores no PIN/password.
+- Jawatankuasa rejects eKeberadaan sessions that still require a temporary-PIN change.
+- Full SQL data dumps and `config.local.php` stay off GitHub.
+
+
+
 - Frontend: GitHub Pages — `https://kea3123-bit.github.io/JawatankuasaSMKBBSuL/`
 - Jawatankuasa data: **MySQL** through `https://ppdkmy.edu.my/jawatankuasabbsul/api.php`
 - Login / session: existing **eKeberadaan MySQL API** at `https://ppdkmy.edu.my/ekeberadaansmkbbsul/api.php`
