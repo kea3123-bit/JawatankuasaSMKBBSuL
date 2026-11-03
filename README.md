@@ -16,7 +16,7 @@ Sistem Jawatankuasa / MyPortfolio dan pemberatan tugas SMK Bandar Baru Sungai La
 
 
 - Frontend: GitHub Pages — `https://kea3123-bit.github.io/JawatankuasaSMKBBSuL/`
-- Jawatankuasa data: **MySQL** through `https://ppdkmy.edu.my/jawatankuasabbsul/api.php`
+- Jawatankuasa data: **MySQL** through `https://ppdkmy.edu.my/jawatankuasasmkbbsul/api.php`
 - Login / session: existing **eKeberadaan MySQL API** at `https://ppdkmy.edu.my/ekeberadaansmkbbsul/api.php`
 - Google Sheets / Apps Script are no longer the production database or login transport.
 - The old `apps-script/` directory remains historical migration source only.
@@ -40,7 +40,7 @@ Use `php/schema.sql` only for an empty schema. For the initial production migrat
 
 Target directory:
 
-`public_html/jawatankuasabbsul/`
+`public_html/jawatankuasasmkbbsul/`
 
 Required files:
 
@@ -65,9 +65,9 @@ The database account needs SELECT / INSERT / UPDATE / DELETE privileges for the 
    - 121 `point_rules`
    - 235 `jawatankuasa`
    - 1498 `pelantikan`
-5. Upload the PHP backend files to `public_html/jawatankuasabbsul/`.
+5. Upload the PHP backend files to `public_html/jawatankuasasmkbbsul/`.
 6. Create private `php/config.local.php`.
-7. Test `https://ppdkmy.edu.my/jawatankuasabbsul/api.php` with JSON RPC `getApiStatus`.
+7. Test `https://ppdkmy.edu.my/jawatankuasasmkbbsul/api.php` with JSON RPC `getApiStatus`.
 8. Reload GitHub Pages and log in with the same eKeberadaan DELIMa email + PIN.
 
 ## Login integration
