@@ -89,7 +89,7 @@
 </main></div>
 
 <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailName"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi" id="detailKpi" style="grid-template-columns:repeat(2,1fr)"><div id="detailPointsCard"><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div></div><div id="taskList"></div></div></aside></div>
-<div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Cari Jawatankuasa</label><input id="committeeFilter" type="search" placeholder="Cari nama atau bidang..."><select id="committeeSelect" style="margin-top:7px"></select><div class="sub" id="assignmentFieldPreview" style="margin-top:5px"></div></div><div class="field"><label>Cari Jawatan / Nilai Mata</label><input id="scoreFilter" type="search" placeholder="Cari jawatan..."><select id="scoreSelect" style="margin-top:7px"></select><div class="sub" style="margin-top:5px">Peranan dan KodSkor sentiasa disimpan dengan nama yang sama.</div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Nyahaktif</button></div></div></aside></div>
+<div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Cari Jawatankuasa</label><input id="committeeFilter" type="search" placeholder="Cari nama atau bidang..."><select id="committeeSelect" style="margin-top:7px"></select><div class="sub" id="assignmentFieldPreview" style="margin-top:5px"></div></div><div class="field"><label>Cari Jawatan / Nilai Mata</label><input id="scoreFilter" type="search" placeholder="Cari jawatan..."><select id="scoreSelect" style="margin-top:7px"></select><div class="sub" style="margin-top:5px">Peranan dan KodSkor sentiasa disimpan dengan nama yang sama.</div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Padam pelantikan</button></div></div></aside></div>
 <div id="globalLoading" class="global-loading" role="status" aria-live="polite" aria-busy="true">
   <div class="global-loading-card">
     <div class="global-spinner" aria-hidden="true"></div>
@@ -142,8 +142,10 @@ function loadingText(method){
     jtGetAdminTeachers:'Memuatkan senarai guru…',
     jtGetAdminCommittees:'Memuatkan jawatankuasa…',
     jtAdminUpdatePoint:'Mengemas kini jawatan dan mata…',
+    jtAdminDeletePoint:'Memadam nilai mata jawatan…',
     jtAdminUpdateTeacher:'Menyimpan jawatan hakiki…',
     jtAdminSaveCommittee:'Menyimpan jawatankuasa…',
+    jtAdminDeleteCommittee:'Memadam jawatankuasa…',
     jtAdminSaveAssignment:'Menyimpan pelantikan…',
     jtAdminDeactivateAssignment:'Menyahaktif pelantikan…'
   };
@@ -379,7 +381,7 @@ async function loadAdminRules(force=false){
 }
 function renderRules(){
   const a=ensureAdminState(),q=$('ruleSearch').value.trim().toLowerCase(),rules=(a.rules||[]).filter(r=>!q||r.code.toLowerCase().includes(q));
-  $('rulesList').innerHTML=rules.map(r=>`<div class="rule-row" data-rule-row="${esc(r.code)}"><input type="text" value="${esc(r.code)}" data-rule-name="${esc(r.code)}" data-initial="${esc(r.code)}" aria-label="Nama jawatan"><input type="number" min="0" max="100" step="1" value="${r.points}" data-rule-points="${esc(r.code)}" data-initial="${r.points}" aria-label="Mata"><span class="usage-count">${r.usageCount||0}</span><button class="btn small save-rule" data-rule="${esc(r.code)}">Simpan</button></div>`).join('')||'<div class="empty">Tiada jawatan.</div>';
+  $('rulesList').innerHTML=rules.map(r=>`<div class="rule-row" data-rule-row="${esc(r.code)}"><input type="text" value="${esc(r.code)}" data-rule-name="${esc(r.code)}" data-initial="${esc(r.code)}" aria-label="Nama jawatan"><input type="number" min="0" max="100" step="1" value="${r.points}" data-rule-points="${esc(r.code)}" data-initial="${r.points}" aria-label="Mata"><span class="usage-count">${r.usageCount||0}</span><div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn small save-rule" data-rule="${esc(r.code)}">Simpan</button><button class="btn small danger delete-rule" data-rule="${esc(r.code)}">Padam</button></div></div>`).join('')||'<div class="empty">Tiada jawatan.</div>';
   document.querySelectorAll('.rule-row').forEach(row=>{const inputs=row.querySelectorAll('input'),btn=row.querySelector('.save-rule');const updateDirty=()=>{const dirty=[...inputs].some(i=>String(i.value)!==String(i.dataset.initial));row.classList.toggle('dirty',dirty);btn.textContent=dirty?'Simpan Perubahan':'Simpan'};inputs.forEach(i=>i.oninput=updateDirty)});
   document.querySelectorAll('.save-rule').forEach(b=>b.onclick=async()=>{
     const oldName=b.dataset.rule,row=a.rules.find(x=>x.code===oldName),nameInput=document.querySelector(`input[data-rule-name="${CSS.escape(oldName)}"]`),pointsInput=document.querySelector(`input[data-rule-points="${CSS.escape(oldName)}"]`);
@@ -393,6 +395,12 @@ function renderRules(){
       if(row){row.code=newName;row.points=newPoints;row.usageCount=res.assignmentsUpdated||usage}
       a.rules.sort((x,y)=>y.points-x.points||x.code.localeCompare(y.code,'ms'));renderRules();
     }catch(e){showError(e)}finally{b.disabled=false}
+  });
+  document.querySelectorAll('.delete-rule').forEach(b=>b.onclick=async()=>{
+    const code=b.dataset.rule,row=a.rules.find(x=>x.code===code),active=Number(row?.activeUsageCount||0);
+    if(active>0)return showError(`Jawatan ini masih digunakan oleh ${active} pelantikan aktif. Padam atau tukar pelantikan tersebut dahulu.`);
+    const ok=await askConfirm('Padam nilai mata jawatan',`Padam "${code}" daripada senarai aktif?\n\nRekod sejarah lama akan kekal dalam database.`,'Padam');if(!ok)return;
+    b.disabled=true;try{await bridge('jtAdminDeletePoint',state.token,code);a.rules=a.rules.filter(x=>x.code!==code);invalidateSearchIndex();renderRules();toast('Nilai mata jawatan dipadam.')}catch(e){showError(e)}finally{b.disabled=false}
   });
 }
 $('ruleSearch').oninput=()=>state.admin?.rules&&renderRules();$('refreshRules').onclick=()=>loadAdminRules(true);
@@ -415,7 +423,7 @@ $('refreshTeachers').onclick=()=>loadAdminTeachers(true,false);$('syncTeachers')
 $('adminTeacher').onchange=()=>{state.adminTeacherId=$('adminTeacher').value;loadAdminTeacher()};
 async function loadAdminTeacher(){
   const a=ensureAdminState(),id=state.adminTeacherId||$('adminTeacher').value;if(!id)return;const t=(a.teachers||[]).find(x=>x.id===id);$('jobTitle').value=t?.jobTitle||'';$('adminTeacherPoints').textContent='–';$('adminTeacherTasks').textContent='–';$('adminAssignments').innerHTML='<div class="loading">Memuatkan pelantikan guru…</div>';
-  try{const d=await bridge('jtGetTeacherDetail',state.token,id);$('adminTeacherPoints').textContent=Number(d.teacher?.totalPoints||0);$('adminTeacherTasks').textContent=Number(d.teacher?.taskCount||0);$('adminAssignments').innerHTML=d.assignments.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.committee)}</b><div class="meta">${esc(x.role)} · ${x.points} mata${x.field?' · '+esc(x.field):''}</div></div><button class="btn small edit-asg" data-id="${esc(x.assignmentId)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';document.querySelectorAll('.edit-asg').forEach(b=>b.onclick=()=>openAssignment(d.assignments.find(x=>x.assignmentId===b.dataset.id)))}catch(e){$('adminTeacherPoints').textContent='–';$('adminTeacherTasks').textContent='–';$('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}
+  try{const d=await bridge('jtGetTeacherDetail',state.token,id);$('adminTeacherPoints').textContent=Number(d.teacher?.totalPoints||0);$('adminTeacherTasks').textContent=Number(d.teacher?.taskCount||0);$('adminAssignments').innerHTML=d.assignments.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.committee)}</b><div class="meta">${esc(x.role)} · ${x.points} mata${x.field?' · '+esc(x.field):''}</div></div><div style="display:flex;gap:6px"><button class="btn small edit-asg" data-id="${esc(x.assignmentId)}">Ubah</button><button class="btn small danger delete-asg" data-id="${esc(x.assignmentId)}">Padam</button></div></div></div>`).join('')||'<div class="empty">Tiada pelantikan.</div>';document.querySelectorAll('.edit-asg').forEach(b=>b.onclick=()=>openAssignment(d.assignments.find(x=>x.assignmentId===b.dataset.id)));document.querySelectorAll('.delete-asg').forEach(b=>b.onclick=()=>deleteAssignment(d.assignments.find(x=>x.assignmentId===b.dataset.id)))}catch(e){$('adminTeacherPoints').textContent='–';$('adminTeacherTasks').textContent='–';$('adminAssignments').innerHTML='<div class="setup-warning">'+esc(errMsg(e))+'</div>'}
 }
 $('saveJob').onclick=async()=>{
   const a=ensureAdminState(),id=$('adminTeacher').value,title=$('jobTitle').value.trim();if(!title)return showError('Jawatan hakiki diperlukan.');
@@ -431,9 +439,15 @@ function editCommittee(id){const a=ensureAdminState(),x=(a.committees||[]).find(
 function renderCommitteesAdmin(){
   const a=ensureAdminState(),q=($('committeeSearchAdmin')?.value||'').trim().toLowerCase(),all=[...(a.committees||[])].sort((x,y)=>x.name.localeCompare(y.name,'ms')),list=all.filter(x=>!q||(x.name+' '+x.code+' '+x.field).toLowerCase().includes(q)),size=50,totalPages=Math.max(1,Math.ceil(list.length/size));
   state.committeePage=Math.min(Math.max(1,state.committeePage),totalPages);const start=(state.committeePage-1)*size,shown=list.slice(start,start+size);
-  $('committeeCountAdmin').textContent=all.length;$('committeeListAdmin').innerHTML=shown.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.name)}</b><div class="meta"><strong>Bidang:</strong> ${esc(x.field||'Belum ditetapkan')}${x.code?' · '+esc(x.code):''} · ${x.usageCount||0} pelantikan</div></div><button class="btn small edit-committee" data-id="${esc(x.id)}">Ubah</button></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
+  $('committeeCountAdmin').textContent=all.length;$('committeeListAdmin').innerHTML=shown.map(x=>`<div class="assignment"><div class="assignment-top"><div><b>${esc(x.name)}</b><div class="meta"><strong>Bidang:</strong> ${esc(x.field||'Belum ditetapkan')}${x.code?' · '+esc(x.code):''} · ${x.usageCount||0} pelantikan</div></div><div style="display:flex;gap:6px"><button class="btn small edit-committee" data-id="${esc(x.id)}">Ubah</button><button class="btn small danger delete-committee" data-id="${esc(x.id)}">Padam</button></div></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
   $('committeePageInfo').textContent=list.length?`${start+1}–${Math.min(start+size,list.length)} daripada ${list.length}`:'0 rekod';$('committeePrev').disabled=state.committeePage<=1;$('committeeNext').disabled=state.committeePage>=totalPages;
   document.querySelectorAll('.edit-committee').forEach(b=>b.onclick=()=>editCommittee(b.dataset.id));
+  document.querySelectorAll('.delete-committee').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.id,x=(a.committees||[]).find(v=>v.id===id),active=Number(x?.activeUsageCount||0);
+    if(active>0)return showError(`Jawatankuasa ini masih mempunyai ${active} pelantikan aktif. Padam pelantikan ahli dahulu.`);
+    const ok=await askConfirm('Padam jawatankuasa',`Padam "${x?.name||id}" daripada senarai aktif?\n\nRekod sejarah lama akan kekal dalam database.`,'Padam');if(!ok)return;
+    b.disabled=true;try{await bridge('jtAdminDeleteCommittee',state.token,id);a.committees=a.committees.filter(v=>v.id!==id);invalidateSearchIndex();resetCommitteeForm();renderCommitteesAdmin();toast('Jawatankuasa dipadam.')}catch(e){showError(e)}finally{b.disabled=false}
+  });
 }
 $('committeeSearchAdmin').oninput=()=>{state.committeePage=1;state.admin?.committees&&renderCommitteesAdmin()};$('committeePrev').onclick=()=>{state.committeePage--;renderCommitteesAdmin()};$('committeeNext').onclick=()=>{state.committeePage++;renderCommitteesAdmin()};$('refreshCommittees').onclick=()=>loadAdminCommittees(true);$('cancelCommitteeEdit').onclick=resetCommitteeForm;
 $('addCommittee').onclick=async()=>{
@@ -460,10 +474,15 @@ $('saveAssignment').onclick=async()=>{
   const payload={assignmentId:$('assignmentId').value||'',personId:$('adminTeacher').value,committeeId:$('committeeSelect').value,scoreCode:$('scoreSelect').value,note:$('noteInput').value.trim()};if(!payload.committeeId)return showError('Pilih jawatankuasa.');if(!payload.scoreCode)return showError('Pilih jawatan / nilai mata.');
   $('saveAssignment').disabled=true;try{const res=await bridge('jtAdminSaveAssignment',state.token,payload);applyTeacherList(res.teachers);toast('Pelantikan disimpan');closeModal('editModal');await loadAdminTeacher()}catch(e){showError(e)}finally{$('saveAssignment').disabled=false}
 };
-$('deactivateAssignment').onclick=async()=>{
-  const old=state.editingAssignment,personId=$('adminTeacher').value;if(!old)return;const ok=await askConfirm('Nyahaktif pelantikan',`Nyahaktif ${old.committee} — ${old.role}?\n\nJumlah mata guru akan dikira semula.`,'Nyahaktif');if(!ok)return;
-  $('deactivateAssignment').disabled=true;try{const res=await bridge('jtAdminDeactivateAssignment',state.token,old.assignmentId);applyTeacherList(res.teachers);closeModal('editModal');await loadAdminTeacher();showToast('Pelantikan dinyahaktif.','success','Undo',async()=>{const restored=await bridge('jtAdminSaveAssignment',state.token,{assignmentId:old.assignmentId,personId,committeeId:old.committeeId,scoreCode:old.scoreCode,note:old.note||''});applyTeacherList(restored.teachers);await loadAdminTeacher();toast('Pelantikan dipulihkan')})}catch(e){showError(e)}finally{$('deactivateAssignment').disabled=false}
-};
+async function deleteAssignment(old){
+  const personId=$('adminTeacher').value;if(!old)return;
+  const ok=await askConfirm('Padam pelantikan',`Padam ${old.committee} — ${old.role} daripada guru ini?\n\nJumlah mata guru akan dikira semula. Rekod disimpan sebagai sejarah dan boleh dipulihkan melalui Undo.`,'Padam');if(!ok)return;
+  try{
+    const res=await bridge('jtAdminDeactivateAssignment',state.token,old.assignmentId);applyTeacherList(res.teachers);if(!$('editModal').classList.contains('hidden'))closeModal('editModal');await loadAdminTeacher();
+    showToast('Pelantikan dipadam.','success','Undo',async()=>{const restored=await bridge('jtAdminSaveAssignment',state.token,{assignmentId:old.assignmentId,personId,committeeId:old.committeeId,scoreCode:old.scoreCode,note:old.note||''});applyTeacherList(restored.teachers);await loadAdminTeacher();toast('Pelantikan dipulihkan')});
+  }catch(e){showError(e)}
+}
+$('deactivateAssignment').onclick=async()=>{const b=$('deactivateAssignment');b.disabled=true;try{await deleteAssignment(state.editingAssignment)}finally{b.disabled=false}};
 $('closeEdit').onclick=()=>closeModal('editModal');$('editModal').onclick=e=>{if(e.target===$('editModal'))closeModal('editModal')};
 $('confirmModal').onclick=e=>{if(e.target===$('confirmModal'))$('confirmCancel').click()};
 
