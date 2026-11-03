@@ -99,7 +99,9 @@
 <div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" style="align-items:center;justify-content:center"><div class="confirm-card"><h3 id="confirmTitle">Sahkan perubahan</h3><p id="confirmText"></p><div class="confirm-actions"><button class="btn" id="confirmCancel">Batal</button><button class="btn primary" id="confirmOk">Sahkan</button></div></div></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
-const BACKEND='https://script.google.com/macros/s/AKfycbyUv2F6Fl3drRR-TTTJkefu73TwbuQk5GVf36z87WLYIy40SSqZOfKBCeSIy7xje_wq/exec';
+const AUTH_API='https://ppdkmy.edu.my/ekeberadaansmkbbsul/api.php';
+const DATA_API='https://ppdkmy.edu.my/jawatankuasabbsul/api.php';
+const AUTH_METHODS=new Set(['resumeSession','resumeTrustedDevice','checkDelimaAccount','loginWithPin','setFirstPin','logoutApp']);
 const state={token:'',device:'',boot:null,teachers:[],admin:null,selectedAccount:null,changeTicket:'',currentTeacher:null,adminTeacherId:'',committeePage:1,editingAssignment:null,lastFocus:null,searchLoaded:false,searchLoading:null,searchPeople:[],searchRecords:[],searchCommittees:[],searchByPerson:null,searchByCommittee:null,portfolioReady:false};
 const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showToast(msg,type='success',actionLabel='',action=null){
@@ -166,29 +168,24 @@ function endGlobalLoading(){
 }
 
 function bridge(method,...args){
- beginGlobalLoading(method);
- return new Promise((resolve,reject)=>{
-   let settled=false;
-   const id='jt_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2), channel='jt-pages';
-   const iframe=document.createElement('iframe');iframe.name='jt_bridge_'+id;iframe.style.display='none';document.body.appendChild(iframe);
-   const form=document.createElement('form');form.method='POST';form.action=BACKEND;form.target=iframe.name;form.style.display='none';
-   const add=(n,v)=>{const i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;form.appendChild(i)};
-   add('bridge','1');add('payload',JSON.stringify({id,channel,origin:location.origin,method,args}));document.body.appendChild(form);
-   const timer=setTimeout(()=>done(new Error('Permintaan mengambil masa terlalu lama. Cuba semula; jika berulang, semak deployment Apps Script.')),30000);
-   function done(error,value){
-     if(settled)return;settled=true;
-     clearTimeout(timer);window.removeEventListener('message',onmsg);endGlobalLoading();
-     setTimeout(()=>{form.remove();iframe.remove()},0);error?reject(error):resolve(value);
-   }
-   function onmsg(ev){const p=ev.data;if(!p||p.type!=='EK_BRIDGE_RESULT'||p.id!==id||p.channel!==channel)return;p.ok?done(null,p.value):done(new Error(p.error||'Ralat backend'))}
-   window.addEventListener('message',onmsg);
-   try{form.submit()}catch(e){done(e)}
- });
+  beginGlobalLoading(method);
+  const endpoint=AUTH_METHODS.has(method)?AUTH_API:DATA_API;
+  return fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'omit',
+    cache:'no-store',
+    body:JSON.stringify({fn:method,args})
+  }).then(async response=>{
+    const obj=await response.json().catch(()=>({ok:false,error:'HTTP '+response.status+': respons server bukan JSON.'}));
+    if(!response.ok||!obj.ok)throw new Error(obj.error||'Request failed');
+    return obj.result;
+  }).finally(endGlobalLoading);
 }
 async function bootstrapJt(){const b=await bridge('jtGetBootstrap',state.token);state.boot=b;state.teachers=b.teachers||[];renderUser();$('loginPage').classList.add('hidden');$('app').classList.remove('hidden');await openPortfolioTab();if(b.user?.isAdmin)renderTeachers()}
 async function tryResume(){const token=loadSession(),device=loadDevice();if(token){try{const r=await bridge('resumeSession',token,device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){clearSession()}}if(device){try{const r=await bridge('resumeTrustedDevice',device,clientInfo());saveSession(r);await bootstrapJt();return true}catch(e){}}return false}
 function showStep(id){['stepEmail','stepPin','stepSetPin'].forEach(x=>$(x).classList.toggle('hidden',x!==id));loginError('')}
-$('emailBtn').onclick=async()=>{const email=$('email').value.trim();if(!email)return loginError('Masukkan emel DELIMa.');$('emailBtn').disabled=true;try{const r=await bridge('checkDelimaAccount',email,clientInfo());state.selectedAccount=r.user;if(r.pinReady){$('accountText').innerHTML='<b>'+esc(r.user.name)+'</b><br>'+esc(r.user.email);showStep('stepPin');$('pin').focus()}else{state.changeTicket=r.changeTicket;$('setupText').textContent=r.message||'Cipta PIN 6 digit.';showStep('stepSetPin');$('newPin').focus()}}catch(e){loginError(errMsg(e))}finally{$('emailBtn').disabled=false}};
+$('emailBtn').onclick=async()=>{const email=$('email').value.trim();if(!email)return loginError('Masukkan emel DELIMa.');$('emailBtn').disabled=true;try{const r=await bridge('checkDelimaAccount',email,clientInfo());state.selectedAccount=r.user;if(!r.pinReady)throw new Error(r.message||'Rekod PIN tidak dijumpai. Hubungi Pentadbir Sistem eKeberadaan.');$('accountText').innerHTML='<b>'+esc(r.user.name)+'</b><br>'+esc(r.user.email);showStep('stepPin');$('pin').focus()}catch(e){loginError(errMsg(e))}finally{$('emailBtn').disabled=false}};
 $('pinBtn').onclick=async()=>{const pin=$('pin').value.replace(/\D/g,'');if(pin.length!==6)return loginError('PIN mesti 6 digit.');$('pinBtn').disabled=true;try{const r=await bridge('loginWithPin',state.selectedAccount.email,pin,clientInfo(),loadDevice());saveSession(r);await bootstrapJt()}catch(e){loginError(errMsg(e));$('pin').value=''}finally{$('pinBtn').disabled=false}};
 $('setPinBtn').onclick=async()=>{const a=$('newPin').value.replace(/\D/g,''),b=$('confirmPin').value.replace(/\D/g,'');if(a.length!==6||a!==b)return loginError('PIN mesti 6 digit dan kedua-duanya sama.');$('setPinBtn').disabled=true;try{const r=await bridge('setFirstPin',state.changeTicket,a,b,clientInfo(),loadDevice());saveSession(r);await bootstrapJt()}catch(e){loginError(errMsg(e))}finally{$('setPinBtn').disabled=false}};
 $('backBtn').onclick=$('backBtn2').onclick=()=>{state.selectedAccount=null;state.changeTicket='';showStep('stepEmail')};
