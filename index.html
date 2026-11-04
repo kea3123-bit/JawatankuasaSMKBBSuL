@@ -334,11 +334,13 @@ function committeeRowsForQuery(q,field=''){
   }).map(c=>Object.assign({},c,{members:(byCommittee[c.id]||[]).filter(r=>!field||r.field===field)})).filter(c=>c.members.length||!nq);
 }
 function renderCommitteeCards(targetId,list,q,showPointsOnOpen){
-  const target=$(targetId);
+  const target=$(targetId),byId=Object.fromEntries((state.searchCommittees||[]).map(x=>[x.id,x]));
   target.innerHTML=list.map(c=>{
     const members=[...c.members].sort((a,b)=>a.role.localeCompare(b.role,'ms')||a.name.localeCompare(b.name,'ms'));
-    const rows=members.map(r=>`<tr><td>${esc(r.role)}</td><td><button type="button" class="btn small committee-member" data-person="${esc(r.personId)}" style="padding:3px 7px">${esc(r.name)}</button></td></tr>`).join('');
-    return `<details class="search-committee" ${q?'open':''}><summary><div><div class="search-committee-title">${esc(c.name)}</div><div class="search-committee-meta">${esc(c.field||'Tiada bidang')}${c.code?' · '+esc(c.code):''} · ${members.length} ahli</div></div><span class="search-committee-chevron">⌄</span></summary><div class="search-committee-body">${members.length?`<table class="search-member-table"><thead><tr><th>Jawatan / Peranan</th><th>Nama</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Belum ada pelantikan aktif.</div>'}</div></details>`;
+    const rows=members.map(r=>`<tr><td>${esc(r.role)}${r.portfolioBasis?'<div class="source-note">Asas: '+esc(r.portfolioBasis)+'</div>':''}</td><td><button type="button" class="btn small committee-member" data-person="${esc(r.personId)}" style="padding:3px 7px">${esc(r.name)}</button></td></tr>`).join('');
+    const parent=c.parentId?byId[c.parentId]:null,level=Math.max(1,Number(c.hierarchyLevel||1));
+    const code=c.manualRef||c.code||'';
+    return `<details class="search-committee" style="margin-left:${Math.min(42,(level-1)*14)}px" ${q?'open':''}><summary><div><div class="search-committee-title">${code?'<span class="hierarchy-tag">'+esc(code)+'</span> ':''}${esc(c.name)}</div><div class="search-committee-meta">${esc(c.component||c.field||'')}${c.field&&c.component?' · '+esc(c.field):''}${parent?' · Di bawah '+esc(parent.name):''} · ${members.length} ahli</div></div><span class="search-committee-chevron">⌄</span></summary><div class="search-committee-body">${members.length?`<table class="search-member-table"><thead><tr><th>Jawatan / Peranan</th><th>Nama</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Belum ada pelantikan aktif.</div>'}</div></details>`;
   }).join('')||'<div class="panel empty">Tiada jawatankuasa sepadan.</div>';
   target.querySelectorAll('.committee-member').forEach(b=>b.onclick=e=>{e.preventDefault();openTeacher(b.dataset.person,!!showPointsOnOpen)});
 }
