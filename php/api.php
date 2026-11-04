@@ -41,12 +41,19 @@ try{
 function jt_rpc(string $fn,array $a){
     switch($fn){
       case 'getApiStatus': return ['healthy'=>true,'backend'=>'PHP/MySQL','auth'=>'eKeberadaan MySQL API'];
-      case 'jtGetBootstrap': return jt_get_bootstrap((string)($a[0]??''),!empty($a[1]));
-      case 'jtGetTeacherDetail': return jt_get_teacher_detail((string)($a[0]??''),(string)($a[1]??''));
+      case 'jtGetBootstrap': return jt_get_bootstrap((string)($a[0]??''),!empty($a[1]),(int)($a[2]??0));
+      case 'jtGetTeacherDetail': return jt_get_teacher_detail((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
       case 'jtGetAdminRules': return jt_get_admin_rules((string)($a[0]??''));
       case 'jtGetAdminTeachers': return jt_get_admin_teachers((string)($a[0]??''),!empty($a[1]));
-      case 'jtGetAdminCommittees': return jt_get_admin_committees((string)($a[0]??''));
+      case 'jtGetAdminCommittees': return jt_get_admin_committees((string)($a[0]??''),(int)($a[1]??0));
       case 'jtGetAdminData': return jt_get_admin_data((string)($a[0]??''));
+      case 'jtGetSessions': return jt_get_sessions((string)($a[0]??''));
+      case 'jtGetSessionDashboard': return jt_get_session_dashboard((string)($a[0]??''),(int)($a[1]??0),(int)($a[2]??0));
+      case 'jtAdminCloneSession': return jt_admin_clone_session((string)($a[0]??''),(int)($a[1]??0),(int)($a[2]??0));
+      case 'jtAdminSetSessionStatus': return jt_admin_set_session_status((string)($a[0]??''),(int)($a[1]??0),(string)($a[2]??''));
+      case 'jtAdminBulkReassign': return jt_admin_bulk_reassign((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(string)($a[2]??''),(int)($a[3]??0));
+      case 'jtAdminBulkDeactivate': return jt_admin_bulk_deactivate((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(int)($a[2]??0));
+      case 'jtGetCommitteeRoles': return jt_get_committee_roles((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
       case 'jtAdminUpdatePoint': return jt_admin_update_point((string)($a[0]??''),(string)($a[1]??''),$a[2]??0,(string)($a[3]??$a[1]??''));
       case 'jtAdminDeletePoint': return jt_admin_delete_point((string)($a[0]??''),(string)($a[1]??''));
       case 'jtAdminUpdateTeacher': return jt_admin_update_teacher((string)($a[0]??''),(string)($a[1]??''),(string)($a[2]??''));
