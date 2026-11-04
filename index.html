@@ -114,6 +114,20 @@
 
 <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailName"><aside class="drawer"><div class="drawer-head"><div><h2 id="detailName"></h2><div class="sub" id="detailJob"></div></div><button class="btn small close" id="closeDetail">Tutup</button></div><div class="drawer-body"><div class="detail-kpi" id="detailKpi" style="grid-template-columns:repeat(2,1fr)"><div id="detailPointsCard"><b id="detailPoints">0</b><span>Jumlah mata</span></div><div><b id="detailTasks">0</b><span>Pelantikan</span></div></div><div id="taskList"></div></div></aside></div>
 <div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="editTitle">Pelantikan</h2><div class="sub" id="editTeacherName"></div></div><button class="btn small close" id="closeEdit">Tutup</button></div><div class="drawer-body"><input id="assignmentId" type="hidden"><div class="field"><label>Cari Jawatankuasa</label><input id="committeeFilter" type="search" placeholder="Cari nama atau bidang..."><select id="committeeSelect" style="margin-top:7px"></select><div class="sub" id="assignmentFieldPreview" style="margin-top:5px"></div></div><div class="field"><label>Cari Jawatan / Nilai Mata</label><input id="scoreFilter" type="search" placeholder="Cari jawatan..."><select id="scoreSelect" style="margin-top:7px"></select><div class="sub" style="margin-top:5px">Peranan dan KodSkor sentiasa disimpan dengan nama yang sama.</div></div><div class="field"><label>Asas Portfolio / Tugas Hakiki</label><input id="portfolioBasisInput" placeholder="Contoh: SU Kurikulum, Guru Data, Ketua Panitia"><div class="sub">Berasingan daripada jawatan dalam jawatankuasa.</div></div><div class="field"><label>Catatan</label><input id="noteInput"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="saveAssignment">Simpan pelantikan</button><button class="btn danger hidden" id="deactivateAssignment">Padam pelantikan</button></div></div></aside></div>
+<div id="roleModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="roleModalTitle">Struktur Jawatan</h2><div class="sub" id="roleCommitteeName"></div></div><button class="btn small close" id="closeRoleModal">Tutup</button></div><div class="drawer-body">
+  <input id="roleTemplateId" type="hidden"><input id="roleCommitteeId" type="hidden">
+  <div class="field"><label>Nama jawatan dalam jawatankuasa</label><input id="roleNameInput" placeholder="Contoh: Setiausaha EMIS / APDM"></div>
+  <div class="field"><label>Kategori nilai mata</label><select id="roleCodeSelect"></select><div class="sub">Kategori ini menentukan mata; nama jawatan di atas kekal mengikut Manual.</div></div>
+  <div class="form-grid"><div class="field"><label>Tahap hierarki</label><input id="roleRankInput" type="number" min="1" max="9" value="6"></div><div class="field"><label>Override mata</label><input id="rolePointsOverride" type="number" min="0" max="100" step="1" placeholder="Kosong = ikut kategori"></div></div>
+  <div class="form-grid"><div class="field"><label>Min orang</label><input id="roleMinInput" type="number" min="0" value="0"></div><div class="field"><label>Max orang</label><input id="roleMaxInput" type="number" min="0" placeholder="Tiada had"></div></div>
+  <div class="field"><label style="display:flex;align-items:center;gap:7px;text-transform:none"><input id="roleRequiredInput" type="checkbox" style="width:auto"> Jawatan wajib diisi</label></div>
+  <div class="field"><label>Asas portfolio</label><input id="rolePortfolioInput" placeholder="Contoh: Guru Data / SU Kurikulum / Ketua Panitia"></div>
+  <div class="form-grid"><div class="field"><label>Jenis sumber</label><select id="roleSourceType"><option value="MANUAL">Manual Sekolah</option><option value="KPM">KPM</option><option value="MANUAL_KPM">Manual + KPM</option><option value="LOCAL">Tetapan Sekolah</option></select></div><div class="field"><label>Rujukan sumber</label><input id="roleSourceRef" placeholder="Manual p.86 / SPI KPM..."></div></div>
+  <div class="field"><label>Catatan struktur</label><input id="roleNotesInput"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="saveCommitteeRole">Simpan Jawatan</button><button class="btn" id="resetCommitteeRole">Jawatan Baharu</button></div>
+  <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+  <div id="roleStructureList"><div class="loading">Memuatkan struktur jawatan…</div></div>
+</div></aside></div>
 <div id="globalLoading" class="global-loading" role="status" aria-live="polite" aria-busy="true">
   <div class="global-loading-card">
     <div class="global-spinner" aria-hidden="true"></div>
@@ -178,7 +192,9 @@ function loadingText(method){
     jtAdminSetSessionStatus:'Mengubah status sesi…',
     jtAdminBulkReassign:'Memindahkan pelantikan…',
     jtAdminBulkDeactivate:'Memadam pelantikan dipilih…',
-    jtGetCommitteeRoles:'Memuatkan hierarki jawatan…'
+    jtGetCommitteeRoles:'Memuatkan hierarki jawatan…',
+    jtAdminSaveCommitteeRole:'Menyimpan struktur jawatan…',
+    jtAdminDeleteCommitteeRole:'Memadam struktur jawatan…'
   };
   return map[method]||'Sedang memproses…';
 }
@@ -537,9 +553,10 @@ function editCommittee(id){const a=ensureAdminState(),x=(a.committees||[]).find(
 function renderCommitteesAdmin(){
   const a=ensureAdminState(),q=($('committeeSearchAdmin')?.value||'').trim().toLowerCase(),all=[...(a.committees||[])].sort((x,y)=>Number(x.sortOrder||0)-Number(y.sortOrder||0)||(x.manualRef||'').localeCompare(y.manualRef||'')||x.name.localeCompare(y.name,'ms')),list=all.filter(x=>!q||(x.name+' '+x.code+' '+x.field).toLowerCase().includes(q)),size=50,totalPages=Math.max(1,Math.ceil(list.length/size));
   state.committeePage=Math.min(Math.max(1,state.committeePage),totalPages);const start=(state.committeePage-1)*size,shown=list.slice(start,start+size);
-  $('committeeCountAdmin').textContent=all.length;$('committeeListAdmin').innerHTML=shown.map(x=>`<div class="assignment"><div class="assignment-top"><div style="padding-left:${Math.max(0,Number(x.hierarchyLevel||1)-1)*18}px"><b>${x.manualRef?'<span class="hierarchy-tag">'+esc(x.manualRef)+'</span> ':''}${esc(x.name)}</b><div class="meta"><strong>${esc(x.component||'LAIN')}</strong> · ${esc(x.field||'Belum ditetapkan')} · Tahap ${Number(x.hierarchyLevel||1)} · ${x.usageCount||0} pelantikan</div></div><div style="display:flex;gap:6px"><button class="btn small edit-committee" data-id="${esc(x.id)}">Ubah</button><button class="btn small danger delete-committee" data-id="${esc(x.id)}">Padam</button></div></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
+  $('committeeCountAdmin').textContent=all.length;$('committeeListAdmin').innerHTML=shown.map(x=>`<div class="assignment"><div class="assignment-top"><div style="padding-left:${Math.max(0,Number(x.hierarchyLevel||1)-1)*18}px"><b>${x.manualRef?'<span class="hierarchy-tag">'+esc(x.manualRef)+'</span> ':''}${esc(x.name)}</b><div class="meta"><strong>${esc(x.component||'LAIN')}</strong> · ${esc(x.field||'Belum ditetapkan')} · Tahap ${Number(x.hierarchyLevel||1)} · ${x.usageCount||0} pelantikan</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small structure-committee" data-id="${esc(x.id)}">Struktur Jawatan</button><button class="btn small edit-committee" data-id="${esc(x.id)}">Ubah</button><button class="btn small danger delete-committee" data-id="${esc(x.id)}">Padam</button></div></div></div>`).join('')||'<div class="empty">Tiada jawatankuasa.</div>';
   $('committeePageInfo').textContent=list.length?`${start+1}–${Math.min(start+size,list.length)} daripada ${list.length}`:'0 rekod';$('committeePrev').disabled=state.committeePage<=1;$('committeeNext').disabled=state.committeePage>=totalPages;
   document.querySelectorAll('.edit-committee').forEach(b=>b.onclick=()=>editCommittee(b.dataset.id));
+  document.querySelectorAll('.structure-committee').forEach(b=>b.onclick=()=>openRoleStructure(b.dataset.id));
   document.querySelectorAll('.delete-committee').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.id,x=(a.committees||[]).find(v=>v.id===id),active=Number(x?.activeUsageCount||0);
     if(active>0)return showError(`Jawatankuasa ini masih mempunyai ${active} pelantikan aktif. Padam pelantikan ahli dahulu.`);
@@ -547,6 +564,37 @@ function renderCommitteesAdmin(){
     b.disabled=true;try{await bridge('jtAdminDeleteCommittee',state.token,id);a.committees=a.committees.filter(v=>v.id!==id);invalidateSearchIndex();resetCommitteeForm();renderCommitteesAdmin();toast('Jawatankuasa dipadam.')}catch(e){showError(e)}finally{b.disabled=false}
   });
 }
+function resetRoleForm(){
+  $('roleTemplateId').value='';$('roleNameInput').value='';$('roleRankInput').value='6';$('roleMinInput').value='0';$('roleMaxInput').value='';$('roleRequiredInput').checked=false;$('rolePointsOverride').value='';$('rolePortfolioInput').value='';$('roleSourceType').value='MANUAL';$('roleSourceRef').value='';$('roleNotesInput').value='';
+}
+function populateRoleScoreCodes(selected=''){
+  const a=ensureAdminState();$('roleCodeSelect').innerHTML=(a.rules||[]).map(r=>`<option value="${esc(r.code)}">${esc(r.code)} — ${r.points} mata</option>`).join('');if(selected&&a.rules?.some(r=>r.code===selected))$('roleCodeSelect').value=selected;
+}
+function renderRoleStructure(){
+  const roles=state.committeeRoles||[];$('roleStructureList').innerHTML=roles.map(r=>`<div class="assignment"><div class="assignment-top"><div><b><span class="hierarchy-tag">Tahap ${r.rank}</span> ${esc(r.roleName)}</b><div class="meta">${esc(r.roleCode)} · ${r.points} mata · Min ${r.min}${r.max===null?'':' / Max '+r.max}${r.required?' · WAJIB':''}${r.portfolioBasis?' · Asas: '+esc(r.portfolioBasis):''}</div><div class="source-note">${esc(r.sourceType||'LOCAL')}${r.sourceRef?' · '+esc(r.sourceRef):''}</div></div><div style="display:flex;gap:6px"><button class="btn small edit-role-template" data-id="${r.templateId}">Ubah</button><button class="btn small danger delete-role-template" data-id="${r.templateId}">Padam</button></div></div></div>`).join('')||'<div class="empty">Belum ada struktur jawatan. Tambah jawatan pertama.</div>';
+  document.querySelectorAll('.edit-role-template').forEach(b=>b.onclick=()=>editRoleTemplate(Number(b.dataset.id)));
+  document.querySelectorAll('.delete-role-template').forEach(b=>b.onclick=()=>deleteRoleTemplate(Number(b.dataset.id)));
+}
+function editRoleTemplate(id){
+  const r=(state.committeeRoles||[]).find(x=>Number(x.templateId)===Number(id));if(!r)return;
+  $('roleTemplateId').value=r.templateId;$('roleNameInput').value=r.roleName||'';populateRoleScoreCodes(r.roleCode);$('roleRankInput').value=r.rank||6;$('roleMinInput').value=r.min||0;$('roleMaxInput').value=r.max??'';$('roleRequiredInput').checked=!!r.required;$('rolePointsOverride').value=r.pointsOverride??'';$('rolePortfolioInput').value=r.portfolioBasis||'';$('roleSourceType').value=r.sourceType||'LOCAL';$('roleSourceRef').value=r.sourceRef||'';$('roleNotesInput').value=r.notes||'';$('roleNameInput').focus();
+}
+async function openRoleStructure(id){
+  const a=ensureAdminState(),comm=(a.committees||[]).find(x=>x.id===id);if(!comm)return;
+  try{if(!a.rules){const rr=await bridge('jtGetAdminRules',state.token);a.rules=rr.rules||[]}const r=await bridge('jtGetCommitteeRoles',state.token,id,state.sessionYear);state.committeeRoles=r.roles||[];$('roleCommitteeId').value=id;$('roleCommitteeName').textContent=[comm.manualRef,comm.name,'Sesi '+state.sessionYear].filter(Boolean).join(' · ');populateRoleScoreCodes();resetRoleForm();renderRoleStructure();openModal('roleModal','roleNameInput')}catch(e){showError(e)}
+}
+$('resetCommitteeRole').onclick=()=>{resetRoleForm();populateRoleScoreCodes();$('roleNameInput').focus()};
+$('saveCommitteeRole').onclick=async()=>{
+  const payload={templateId:Number($('roleTemplateId').value||0),committeeId:$('roleCommitteeId').value,sessionYear:state.sessionYear,roleName:$('roleNameInput').value.trim(),roleCode:$('roleCodeSelect').value,rank:Number($('roleRankInput').value||6),min:Number($('roleMinInput').value||0),max:$('roleMaxInput').value===''?null:Number($('roleMaxInput').value),required:$('roleRequiredInput').checked,pointsOverride:$('rolePointsOverride').value===''?null:Number($('rolePointsOverride').value),portfolioBasis:$('rolePortfolioInput').value.trim(),sourceType:$('roleSourceType').value,sourceRef:$('roleSourceRef').value.trim(),notes:$('roleNotesInput').value.trim()};
+  if(!payload.roleName||!payload.roleCode)return showError('Nama jawatan dan kategori nilai mata diperlukan.');
+  const b=$('saveCommitteeRole');b.disabled=true;try{const r=await bridge('jtAdminSaveCommitteeRole',state.token,payload);state.committeeRoles=r.roles||[];resetRoleForm();populateRoleScoreCodes();renderRoleStructure();invalidateSearchIndex();toast('Struktur jawatan disimpan.')}catch(e){showError(e)}finally{b.disabled=false}
+};
+async function deleteRoleTemplate(id){
+  const r=(state.committeeRoles||[]).find(x=>Number(x.templateId)===Number(id));if(!r)return;const ok=await askConfirm('Padam struktur jawatan',`Padam "${r.roleName}" daripada template jawatankuasa ini?`,'Padam');if(!ok)return;
+  try{await bridge('jtAdminDeleteCommitteeRole',state.token,id,state.sessionYear);state.committeeRoles=state.committeeRoles.filter(x=>Number(x.templateId)!==Number(id));renderRoleStructure();toast('Template jawatan dipadam.')}catch(e){showError(e)}
+}
+$('closeRoleModal').onclick=()=>closeModal('roleModal');$('roleModal').onclick=e=>{if(e.target===$('roleModal'))closeModal('roleModal')};
+
 $('committeeSearchAdmin').oninput=()=>{state.committeePage=1;state.admin?.committees&&renderCommitteesAdmin()};$('committeePrev').onclick=()=>{state.committeePage--;renderCommitteesAdmin()};$('committeeNext').onclick=()=>{state.committeePage++;renderCommitteesAdmin()};$('refreshCommittees').onclick=()=>loadAdminCommittees(true);$('cancelCommitteeEdit').onclick=resetCommitteeForm;
 $('addCommittee').onclick=async()=>{
   const a=ensureAdminState(),id=$('editCommitteeId').value.trim(),payload={id,name:$('newCommitteeName').value.trim(),code:$('newCommitteeCode').value.trim(),manualRef:$('newCommitteeCode').value.trim(),field:$('newCommitteeField').value.trim(),component:$('newCommitteeComponent').value,parentId:$('newCommitteeParent').value,sortOrder:Number($('newCommitteeSort').value||0),sessionYear:state.sessionYear};if(!payload.name)return showError('Masukkan nama jawatankuasa.');if(!payload.field)return showError('Masukkan Bidang.');
@@ -593,7 +641,7 @@ $('confirmModal').onclick=e=>{if(e.target===$('confirmModal'))$('confirmCancel')
 
 document.addEventListener('keydown',e=>{
   const visible=[...document.querySelectorAll('.modal:not(.hidden)')].pop();if(!visible)return;
-  if(e.key==='Escape'){e.preventDefault();if(visible.id==='confirmModal')$('confirmCancel').click();else if(visible.id==='editModal')closeModal('editModal');else if(visible.id==='detailModal')closeModal('detailModal');return}
+  if(e.key==='Escape'){e.preventDefault();if(visible.id==='confirmModal')$('confirmCancel').click();else if(visible.id==='editModal')closeModal('editModal');else if(visible.id==='roleModal')closeModal('roleModal');else if(visible.id==='detailModal')closeModal('detailModal');return}
   if(e.key==='Tab'){const focusables=[...visible.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(x=>x.offsetParent!==null);if(!focusables.length)return;const first=focusables[0],last=focusables[focusables.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}
 });
 
