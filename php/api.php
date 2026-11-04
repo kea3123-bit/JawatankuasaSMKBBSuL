@@ -301,15 +301,15 @@ function jt_admin_update_point(string $token,string $code,$points,string $newNam
         if(jt_one('SELECT kod_skor FROM point_rules WHERE UPPER(TRIM(kod_skor))=UPPER(TRIM(?)) LIMIT 1',[$newName]))throw new RuntimeException('Nama jawatan baharu sudah wujud.');
         jt_exec('INSERT INTO point_rules(kod_skor,mata,sumber,catatan,aktif,recommended_points,role_level,role_group,source_ref,official_structure) VALUES (?,?,?,?,1,?,?,?,?,?)',[
           $newName,$points,$old['sumber'],$old['catatan'],$old['recommended_points'],$old['role_level'],$old['role_group'],$old['source_ref'],$old['official_structure']]);
-        jt_exec("UPDATE pelantikan SET peranan=?,kod_skor=?,mata=?,updated_at=?,updated_by=? WHERE (peranan=? OR kod_skor=?) AND session_year=?",[$newName,$newName,$points,jt_now(),$u['email'],$code,$code,$year]);
-        jt_exec("UPDATE committee_role_templates SET role_name=?,role_code=? WHERE role_code=? AND session_year=?",[$newName,$newName,$code,$year]);
+        jt_exec("UPDATE pelantikan SET peranan=CASE WHEN peranan=? THEN ? ELSE peranan END,kod_skor=?,mata=?,updated_at=?,updated_by=? WHERE (peranan=? OR kod_skor=?) AND session_year=?",[$code,$newName,$newName,$points,jt_now(),$u['email'],$code,$code,$year]);
+        jt_exec("UPDATE committee_role_templates SET role_code=? WHERE role_code=? AND session_year=?",[$newName,$code,$year]);
         jt_exec('UPDATE point_rules SET aktif=0 WHERE kod_skor=?',[$code]);
       }else{
         jt_exec('UPDATE point_rules SET mata=?,aktif=1 WHERE kod_skor=?',[$points,$code]);
         jt_exec("UPDATE pelantikan SET mata=?,updated_at=?,updated_by=? WHERE kod_skor=? AND session_year=?",[$points,jt_now(),$u['email'],$code,$year]);
       }
       jt_audit($u,'UPDATE_POINT_RULE','POINT_RULE',$code,['before'=>['name'=>$code,'points'=>(float)$old['mata']],'after'=>['name'=>$newName,'points'=>$points],'draftAssignmentsUpdated'=>$count]);$pdo->commit();
-      $year=jt_admin_session_year();return ['ok'=>true,'oldName'=>$code,'name'=>$newName,'points'=>$points,'assignmentsUpdated'=>$count,'teachers'=>jt_teacher_stats($year)];
+      return ['ok'=>true,'oldName'=>$code,'name'=>$newName,'points'=>$points,'assignmentsUpdated'=>$count,'teachers'=>jt_teacher_stats($year)];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function jt_admin_delete_point(string $token,string $code,int $requestedYear=0): array {
