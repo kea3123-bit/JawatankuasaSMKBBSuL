@@ -291,7 +291,7 @@ function jt_admin_bulk_deactivate(string $token,array $assignmentIds,int $reques
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function jt_admin_update_point(string $token,string $code,$points,string $newName): array {
-    $u=jt_user($token,true);$code=trim($code);$newName=trim($newName);$points=(float)$points;
+    $u=jt_user($token,true);$year=jt_admin_session_year();jt_assert_session_editable($year);$code=trim($code);$newName=trim($newName);$points=(float)$points;
     if($code===''||$newName===''||$points<0||$points>100) throw new InvalidArgumentException('Nama jawatan atau mata tidak sah.');
     $old=jt_one('SELECT * FROM point_rules WHERE kod_skor=?',[$code]);if(!$old)throw new RuntimeException('Jawatan tidak dijumpai.');
     $pdo=jt_db();$pdo->beginTransaction();
@@ -313,7 +313,7 @@ function jt_admin_update_point(string $token,string $code,$points,string $newNam
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function jt_admin_delete_point(string $token,string $code): array {
-    $u=jt_user($token,true);$code=trim($code);if($code==='')throw new InvalidArgumentException('Nama jawatan diperlukan.');
+    $u=jt_user($token,true);$year=jt_admin_session_year();jt_assert_session_editable($year);$code=trim($code);if($code==='')throw new InvalidArgumentException('Nama jawatan diperlukan.');
     $rule=jt_one('SELECT * FROM point_rules WHERE kod_skor=? AND aktif=1',[$code]);if(!$rule)throw new RuntimeException('Jawatan tidak dijumpai atau sudah dipadam.');
     $active=(int)(jt_one("SELECT COUNT(*) c FROM pelantikan p JOIN sessions s ON s.session_year=p.session_year WHERE p.kod_skor=? AND p.aktif=1 AND s.status IN ('DRAFT','REVIEW')",[$code])['c']??0);
     $templates=(int)(jt_one("SELECT COUNT(*) c FROM committee_role_templates t JOIN sessions s ON s.session_year=t.session_year WHERE t.role_code=? AND t.aktif=1 AND s.status IN ('DRAFT','REVIEW')",[$code])['c']??0);
