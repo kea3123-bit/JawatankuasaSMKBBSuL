@@ -120,7 +120,7 @@ function jt_get_teacher_detail(string $token,string $personId,int $requestedYear
     $assign=[];
     foreach(jt_rows('SELECT p.*,j.manual_ref,j.component_code,j.hierarchy_level FROM pelantikan p LEFT JOIN jawatankuasa j ON j.committee_id=p.committee_id WHERE p.person_id=? AND p.session_year=? AND p.aktif=1 ORDER BY j.sort_order,p.bidang,p.jawatankuasa,p.peranan',[$personId,$year]) as $r){
         $x=['assignmentId'=>(string)$r['assignment_id'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'scoreCode'=>(string)$r['kod_skor'],'field'=>(string)$r['bidang'],'type'=>(string)$r['jenis'],'note'=>(string)($r['catatan']??''),
-            'portfolioBasis'=>(string)($r['portfolio_basis']??''),'manualRef'=>(string)($r['manual_ref']??''),'component'=>(string)($r['component_code']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1)];
+            'portfolioBasis'=>(string)($r['portfolio_basis']??''),'roleTemplateId'=>$r['role_template_id']!==null?(int)$r['role_template_id']:null,'manualRef'=>(string)($r['manual_ref']??''),'component'=>(string)($r['component_code']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1)];
         if(!empty($u['isAdmin']))$x['points']=(float)$r['mata'];
         $assign[]=$x;
     }
@@ -191,7 +191,7 @@ function jt_get_session_dashboard(string $token,int $requestedYear=0,int $compar
       COUNT(p.assignment_id) filled
       FROM committee_role_templates t
       JOIN jawatankuasa j ON j.committee_id=t.committee_id
-      LEFT JOIN pelantikan p ON p.session_year=t.session_year AND p.committee_id=t.committee_id AND p.aktif=1 AND (p.role_template_id=t.template_id OR p.peranan=t.role_code)
+      LEFT JOIN pelantikan p ON p.session_year=t.session_year AND p.committee_id=t.committee_id AND p.aktif=1 AND (p.role_template_id=t.template_id OR p.peranan=t.role_name)
       WHERE t.session_year=? AND t.aktif=1 AND t.required_role=1 AND j.aktif=1
       GROUP BY t.template_id,t.committee_id,j.nama_jawatankuasa,j.manual_ref,t.role_name,t.role_code,t.min_count,t.max_count
       HAVING filled < t.min_count ORDER BY j.sort_order,j.nama_jawatankuasa,t.hierarchy_rank",[$year]);
@@ -201,7 +201,7 @@ function jt_get_session_dashboard(string $token,int $requestedYear=0,int $compar
       ORDER BY duplicate_count DESC,p.nama",[$year]);
     $overCapacity=jt_rows("SELECT t.template_id,t.committee_id,j.nama_jawatankuasa,t.role_name,t.max_count,COUNT(p.assignment_id) filled
       FROM committee_role_templates t JOIN jawatankuasa j ON j.committee_id=t.committee_id
-      JOIN pelantikan p ON p.session_year=t.session_year AND p.committee_id=t.committee_id AND p.aktif=1 AND (p.role_template_id=t.template_id OR p.peranan=t.role_code)
+      JOIN pelantikan p ON p.session_year=t.session_year AND p.committee_id=t.committee_id AND p.aktif=1 AND (p.role_template_id=t.template_id OR p.peranan=t.role_name)
       WHERE t.session_year=? AND t.aktif=1 AND t.max_count IS NOT NULL
       GROUP BY t.template_id,t.committee_id,j.nama_jawatankuasa,t.role_name,t.max_count HAVING filled>t.max_count",[$year]);
     $duplicateCommittees=jt_rows("SELECT UPPER(TRIM(nama_jawatankuasa)) normalized_name,MIN(nama_jawatankuasa) name,COUNT(*) duplicate_count
@@ -359,27 +359,30 @@ function jt_admin_delete_committee(string $token,string $id): array {
     jt_audit($u,'DELETE_COMMITTEE','JAWATANKUASA',$id,['year'=>$year,'mode'=>'soft-delete','name'=>$row['nama_jawatankuasa']]);return ['ok'=>true,'committeeId'=>$id,'year'=>$year];
 }
 function jt_admin_save_assignment(string $token,array $p): array {
-    $u=jt_user($token,true);$personId=trim((string)($p['personId']??''));$committeeId=trim((string)($p['committeeId']??''));$score=trim((string)($p['scoreCode']??$p['roleCode']??''));
-    if($personId===''||$committeeId===''||$score==='')throw new InvalidArgumentException('Individu, jawatankuasa dan jawatan diperlukan.');
+    $u=jt_user($token,true);$personId=trim((string)($p['personId']??''));$committeeId=trim((string)($p['committeeId']??''));$score=trim((string)($p['scoreCode']??$p['roleCode']??''));$templateId=(int)($p['roleTemplateId']??0);
+    if($personId===''||$committeeId===''||($score===''&&$templateId<=0))throw new InvalidArgumentException('Individu, jawatankuasa dan jawatan diperlukan.');
     $person=jt_one("SELECT * FROM guru WHERE person_id=? AND kumpulan IN ('Guru','AKP') AND aktif=1",[$personId]);if(!$person)throw new RuntimeException('Individu tidak dijumpai atau tidak aktif.');
     $comm=jt_one('SELECT * FROM jawatankuasa WHERE committee_id=? AND aktif=1',[$committeeId]);if(!$comm)throw new RuntimeException('Jawatankuasa tidak dijumpai atau tidak aktif.');
     $year=(int)($p['sessionYear']??$comm['session_year']);if($year!==(int)$comm['session_year'])throw new RuntimeException('Sesi jawatankuasa tidak sepadan.');jt_assert_session_editable($year);
-    $rule=jt_one('SELECT * FROM point_rules WHERE kod_skor=? AND aktif=1',[$score]);if(!$rule)throw new RuntimeException('Jawatan / nilai mata tidak sah.');
-    $tpl=jt_one('SELECT * FROM committee_role_templates WHERE session_year=? AND committee_id=? AND role_code=? AND aktif=1 LIMIT 1',[$year,$committeeId,$score]);
+    $tpl=$templateId>0?jt_one('SELECT * FROM committee_role_templates WHERE template_id=? AND session_year=? AND committee_id=? AND aktif=1',[$templateId,$year,$committeeId]):null;
+    if(!$tpl&&$score!=='')$tpl=jt_one('SELECT * FROM committee_role_templates WHERE session_year=? AND committee_id=? AND role_code=? AND aktif=1 ORDER BY hierarchy_rank,template_id LIMIT 1',[$year,$committeeId,$score]);
+    if($tpl)$score=(string)$tpl['role_code'];
+    $rule=jt_one('SELECT * FROM point_rules WHERE kod_skor=? AND aktif=1',[$score]);if(!$rule)throw new RuntimeException('Kategori nilai mata tidak sah.');
+    $roleName=$tpl?(string)$tpl['role_name']:$score;
     $points=$tpl&&$tpl['points_override']!==null?(float)$tpl['points_override']:(float)$rule['mata'];$portfolio=trim((string)($p['portfolioBasis']??($tpl['portfolio_basis']??'')));
     $id=trim((string)($p['assignmentId']??''));$old=$id!==''?jt_one('SELECT * FROM pelantikan WHERE assignment_id=?',[$id]):null;
     if($id!==''&&!$old)throw new RuntimeException('Pelantikan tidak dijumpai.');if($old&&(int)$old['session_year']!==$year)throw new RuntimeException('Pelantikan berada dalam sesi lain.');
-    if($id===''&&jt_one('SELECT assignment_id FROM pelantikan WHERE session_year=? AND person_id=? AND committee_id=? AND peranan=? AND aktif=1 LIMIT 1',[$year,$personId,$committeeId,$score]))throw new RuntimeException('Pelantikan yang sama sudah wujud.');
+    if($id===''&&jt_one('SELECT assignment_id FROM pelantikan WHERE session_year=? AND person_id=? AND committee_id=? AND peranan=? AND aktif=1 LIMIT 1',[$year,$personId,$committeeId,$roleName]))throw new RuntimeException('Pelantikan yang sama sudah wujud.');
     if($id==='')$id=jt_next_id('pelantikan','assignment_id','A',4);
     $jenis=$old?(string)$old['jenis']:'Terus';$note=trim((string)($p['note']??''));
     $pdo=jt_db();$pdo->beginTransaction();
     try{
       if($old)jt_exec('UPDATE pelantikan SET person_id=?,nama=?,kumpulan=?,committee_id=?,jawatankuasa=?,peranan=?,kod_skor=?,mata=?,bidang=?,jenis=?,catatan=?,mapping_note=?,perlu_semakan=0,aktif=1,updated_at=?,updated_by=?,session_year=?,role_template_id=?,portfolio_basis=? WHERE assignment_id=?',
-        [$person['person_id'],$person['nama'],$person['kumpulan'],$comm['committee_id'],$comm['nama_jawatankuasa'],$score,$score,$points,$comm['bidang'],$jenis,$note,'',jt_now(),$u['email'],$year,$tpl['template_id']??null,$portfolio?:null,$id]);
+        [$person['person_id'],$person['nama'],$person['kumpulan'],$comm['committee_id'],$comm['nama_jawatankuasa'],$roleName,$score,$points,$comm['bidang'],$jenis,$note,'',jt_now(),$u['email'],$year,$tpl['template_id']??null,$portfolio?:null,$id]);
       else jt_exec('INSERT INTO pelantikan(assignment_id,person_id,nama,kumpulan,committee_id,jawatankuasa,peranan,kod_skor,mata,bidang,jenis,catatan,mapping_note,perlu_semakan,aktif,updated_at,updated_by,session_year,role_template_id,portfolio_basis) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,?,?,?,?,?)',
-        [$id,$person['person_id'],$person['nama'],$person['kumpulan'],$comm['committee_id'],$comm['nama_jawatankuasa'],$score,$score,$points,$comm['bidang'],$jenis,$note,'',jt_now(),$u['email'],$year,$tpl['template_id']??null,$portfolio?:null]);
-      $teachers=jt_rebuild_stats($year);jt_audit($u,$old?'UPDATE_ASSIGNMENT':'ADD_ASSIGNMENT','PELANTIKAN',$id,['year'=>$year,'before'=>$old,'after'=>['personId'=>$personId,'committeeId'=>$committeeId,'scoreCode'=>$score,'points'=>$points]]);
-      $pdo->commit();return ['ok'=>true,'assignmentId'=>$id,'assignment'=>['assignmentId'=>$id,'committeeId'=>$committeeId,'committee'=>$comm['nama_jawatankuasa'],'role'=>$score,'scoreCode'=>$score,'points'=>$points,'field'=>$comm['bidang'],'note'=>$note,'portfolioBasis'=>$portfolio],'teachers'=>$teachers];
+        [$id,$person['person_id'],$person['nama'],$person['kumpulan'],$comm['committee_id'],$comm['nama_jawatankuasa'],$roleName,$score,$points,$comm['bidang'],$jenis,$note,'',jt_now(),$u['email'],$year,$tpl['template_id']??null,$portfolio?:null]);
+      $teachers=jt_rebuild_stats($year);jt_audit($u,$old?'UPDATE_ASSIGNMENT':'ADD_ASSIGNMENT','PELANTIKAN',$id,['year'=>$year,'before'=>$old,'after'=>['personId'=>$personId,'committeeId'=>$committeeId,'role'=>$roleName,'scoreCode'=>$score,'points'=>$points]]);
+      $pdo->commit();return ['ok'=>true,'assignmentId'=>$id,'assignment'=>['assignmentId'=>$id,'committeeId'=>$committeeId,'committee'=>$comm['nama_jawatankuasa'],'role'=>$roleName,'scoreCode'=>$score,'points'=>$points,'field'=>$comm['bidang'],'note'=>$note,'portfolioBasis'=>$portfolio],'teachers'=>$teachers];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function jt_admin_deactivate_assignment(string $token,string $id): array {
