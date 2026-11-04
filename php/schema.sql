@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS committee_role_templates (
   source_ref VARCHAR(255) NULL,
   notes TEXT NULL,
   aktif TINYINT(1) NOT NULL DEFAULT 1,
-  UNIQUE KEY uq_committee_role (session_year,committee_id,role_code),
+  UNIQUE KEY uq_committee_role (session_year,committee_id,role_name),
   KEY idx_crt_committee (committee_id,aktif),
   KEY idx_crt_session (session_year,aktif)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
