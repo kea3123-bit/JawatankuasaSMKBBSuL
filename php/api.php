@@ -131,12 +131,21 @@ function jt_get_teacher_detail(string $token,string $personId,int $requestedYear
 function jt_get_admin_rules(string $token): array {
     $u=jt_user($token,true);$usage=[];$activeUsage=[];
     foreach(jt_rows('SELECT kod_skor,COUNT(*) c,SUM(CASE WHEN aktif=1 THEN 1 ELSE 0 END) active_c FROM pelantikan GROUP BY kod_skor') as $r){$usage[(string)$r['kod_skor']]=(int)$r['c'];$activeUsage[(string)$r['kod_skor']]=(int)$r['active_c'];}
-    $rules=[];foreach(jt_rows('SELECT kod_skor,mata FROM point_rules WHERE aktif=1 ORDER BY mata DESC,kod_skor') as $r)$rules[]=['code'=>(string)$r['kod_skor'],'points'=>(float)$r['mata'],'usageCount'=>$usage[(string)$r['kod_skor']]??0,'activeUsageCount'=>$activeUsage[(string)$r['kod_skor']]??0];
+    $rules=[];foreach(jt_rows('SELECT * FROM point_rules WHERE aktif=1 ORDER BY mata DESC,kod_skor') as $r)$rules[]=[
+      'code'=>(string)$r['kod_skor'],'points'=>(float)$r['mata'],
+      'recommendedPoints'=>$r['recommended_points']!==null?(float)$r['recommended_points']:null,
+      'roleLevel'=>(int)($r['role_level']??6),'roleGroup'=>(string)($r['role_group']??''),
+      'sourceRef'=>(string)($r['source_ref']??''),'officialStructure'=>!empty($r['official_structure']),
+      'usageCount'=>$usage[(string)$r['kod_skor']]??0,'activeUsageCount'=>$activeUsage[(string)$r['kod_skor']]??0
+    ];
     return ['ok'=>true,'user'=>jt_user_public($u),'rules'=>$rules];
 }
 function jt_get_admin_teachers(string $token,bool $forceSync): array {
     $u=jt_user($token,true);$sync=$forceSync?jt_sync_roster_from_eke($u,$token):null;
-    $teachers=array_map(static fn($r)=>['id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'jobTitle'=>(string)$r['jawatan_hakiki'],'email'=>(string)($r['emel']??'')],jt_rows("SELECT person_id,nama,jawatan_hakiki,emel FROM guru WHERE kumpulan='Guru' AND aktif=1 ORDER BY nama"));
+    $teachers=array_map(static fn($r)=>[
+      'id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'group'=>(string)$r['kumpulan'],
+      'jobTitle'=>(string)$r['jawatan_hakiki'],'email'=>(string)($r['emel']??'')
+    ],jt_rows("SELECT person_id,nama,kumpulan,jawatan_hakiki,emel FROM guru WHERE kumpulan IN ('Guru','AKP') AND aktif=1 ORDER BY kumpulan='AKP',nama"));
     return ['ok'=>true,'user'=>jt_user_public($u),'sync'=>$sync,'teachers'=>$teachers];
 }
 function jt_get_admin_committees(string $token,int $requestedYear=0): array {
