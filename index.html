@@ -556,22 +556,25 @@ async function ensureAssignmentMeta(){const a=ensureAdminState(),jobs=[];if(!a.r
 function renderCommitteeOptions(selectedId=''){
   const a=ensureAdminState(),q=$('committeeFilter').value.trim().toLowerCase(),list=(a.committees||[]).filter(v=>!q||(v.name+' '+v.field).toLowerCase().includes(q));$('committeeSelect').innerHTML=list.map(v=>`<option value="${esc(v.id)}" data-field="${esc(v.field)}">${esc(v.name)} · ${esc(v.field||'Tiada bidang')}</option>`).join('');if(selectedId&&list.some(v=>v.id===selectedId))$('committeeSelect').value=selectedId;updateAssignmentFieldPreview();
 }
-function renderScoreOptions(selectedCode=''){
+function renderScoreOptions(selectedCode='',selectedTemplateId=0){
   const a=ensureAdminState(),q=$('scoreFilter').value.trim().toLowerCase(),templates=state.committeeRoles||[];
-  const list=templates.length?templates.filter(v=>!q||(v.roleName+' '+v.roleCode).toLowerCase().includes(q)):(a.rules||[]).filter(v=>!q||v.code.toLowerCase().includes(q));
-  $('scoreSelect').innerHTML=list.map(v=>templates.length?`<option value="${esc(v.roleCode)}">${esc(v.roleName)} — ${v.points} mata${v.required?' · wajib':''}</option>`:`<option value="${esc(v.code)}">${esc(v.code)} — ${v.points} mata</option>`).join('');
-  if(selectedCode&&list.some(v=>(templates.length?v.roleCode:v.code)===selectedCode))$('scoreSelect').value=selectedCode;
+  const list=templates.length?templates.filter(v=>!q||(v.roleName+' '+v.roleCode+' '+(v.portfolioBasis||'')).toLowerCase().includes(q)):(a.rules||[]).filter(v=>!q||v.code.toLowerCase().includes(q));
+  $('scoreSelect').innerHTML=list.map(v=>templates.length
+    ?`<option value="${esc(v.roleCode)}" data-template-id="${Number(v.templateId||0)}">${esc(v.roleName)} — ${v.points} mata${v.portfolioBasis?' · '+esc(v.portfolioBasis):''}${v.required?' · wajib':''}</option>`
+    :`<option value="${esc(v.code)}" data-template-id="0">${esc(v.code)} — ${v.points} mata</option>`).join('');
+  if(selectedTemplateId){const opt=[...$('scoreSelect').options].find(o=>Number(o.dataset.templateId||0)===Number(selectedTemplateId));if(opt)$('scoreSelect').selectedIndex=opt.index}
+  else if(selectedCode&&list.some(v=>(templates.length?v.roleCode:v.code)===selectedCode))$('scoreSelect').value=selectedCode;
 }
-async function loadCommitteeRoles(selectedCode=''){const id=$('committeeSelect').value;if(!id){state.committeeRoles=[];renderScoreOptions(selectedCode);return}try{const r=await bridge('jtGetCommitteeRoles',state.token,id,state.sessionYear);state.committeeRoles=r.roles||[];renderScoreOptions(selectedCode)}catch(e){state.committeeRoles=[];renderScoreOptions(selectedCode)}}
+async function loadCommitteeRoles(selectedCode='',selectedTemplateId=0){const id=$('committeeSelect').value;if(!id){state.committeeRoles=[];renderScoreOptions(selectedCode,selectedTemplateId);return}try{const r=await bridge('jtGetCommitteeRoles',state.token,id,state.sessionYear);state.committeeRoles=r.roles||[];renderScoreOptions(selectedCode,selectedTemplateId)}catch(e){state.committeeRoles=[];renderScoreOptions(selectedCode,selectedTemplateId)}}
 function updateAssignmentFieldPreview(){const o=$('committeeSelect').selectedOptions[0],c=ensureAdminState().committees?.find(x=>x.id===o?.value);$('assignmentFieldPreview').textContent=o?[(c?.manualRef||''),(o.dataset.field||'Belum ditetapkan'),c?.component||''].filter(Boolean).join(' · '):'Tiada jawatankuasa sepadan.'}
 $('committeeFilter').oninput=()=>renderCommitteeOptions($('committeeSelect').value);$('scoreFilter').oninput=()=>renderScoreOptions($('scoreSelect').value);$('committeeSelect').onchange=async()=>{updateAssignmentFieldPreview();await loadCommitteeRoles()};
 $('newAssignment').onclick=()=>openAssignment(null);
 async function openAssignment(x){
-  const a=ensureAdminState();try{await ensureAssignmentMeta()}catch(e){return showError(e)}state.editingAssignment=x?Object.assign({},x):null;const t=(a.teachers||[]).find(v=>v.id===$('adminTeacher').value);$('editTeacherName').textContent=t?.name||'';$('assignmentId').value=x?.assignmentId||'';$('noteInput').value=x?.note||'';$('portfolioBasisInput').value=x?.portfolioBasis||'';$('committeeFilter').value='';$('scoreFilter').value='';renderCommitteeOptions(x?.committeeId||'');await loadCommitteeRoles(x?.scoreCode||'AJK');$('deactivateAssignment').classList.toggle('hidden',!x);$('editTitle').textContent=x?'Ubah pelantikan':'Tambah pelantikan';openModal('editModal','committeeFilter');
+  const a=ensureAdminState();try{await ensureAssignmentMeta()}catch(e){return showError(e)}state.editingAssignment=x?Object.assign({},x):null;const t=(a.teachers||[]).find(v=>v.id===$('adminTeacher').value);$('editTeacherName').textContent=t?.name||'';$('assignmentId').value=x?.assignmentId||'';$('noteInput').value=x?.note||'';$('portfolioBasisInput').value=x?.portfolioBasis||'';$('committeeFilter').value='';$('scoreFilter').value='';renderCommitteeOptions(x?.committeeId||'');await loadCommitteeRoles(x?.scoreCode||'AJK',x?.roleTemplateId||0);$('deactivateAssignment').classList.toggle('hidden',!x);$('editTitle').textContent=x?'Ubah pelantikan':'Tambah pelantikan';openModal('editModal','committeeFilter');
 }
 function applyTeacherList(teachers){if(teachers){state.teachers=teachers;invalidateSearchIndex();renderTeachers()}}
 $('saveAssignment').onclick=async()=>{
-  const payload={assignmentId:$('assignmentId').value||'',personId:$('adminTeacher').value,committeeId:$('committeeSelect').value,scoreCode:$('scoreSelect').value,portfolioBasis:$('portfolioBasisInput').value.trim(),note:$('noteInput').value.trim(),sessionYear:state.sessionYear};if(!payload.committeeId)return showError('Pilih jawatankuasa.');if(!payload.scoreCode)return showError('Pilih jawatan / nilai mata.');
+  const scoreOpt=$('scoreSelect').selectedOptions[0];const payload={assignmentId:$('assignmentId').value||'',personId:$('adminTeacher').value,committeeId:$('committeeSelect').value,scoreCode:$('scoreSelect').value,roleTemplateId:Number(scoreOpt?.dataset.templateId||0),portfolioBasis:$('portfolioBasisInput').value.trim(),note:$('noteInput').value.trim(),sessionYear:state.sessionYear};if(!payload.committeeId)return showError('Pilih jawatankuasa.');if(!payload.scoreCode)return showError('Pilih jawatan / nilai mata.');
   $('saveAssignment').disabled=true;try{const res=await bridge('jtAdminSaveAssignment',state.token,payload);applyTeacherList(res.teachers);toast('Pelantikan disimpan');closeModal('editModal');await loadAdminTeacher()}catch(e){showError(e)}finally{$('saveAssignment').disabled=false}
 };
 async function deleteAssignment(old){
@@ -579,7 +582,7 @@ async function deleteAssignment(old){
   const ok=await askConfirm('Padam pelantikan',`Padam ${old.committee} — ${old.role} daripada guru ini?\n\nJumlah mata guru akan dikira semula. Rekod disimpan sebagai sejarah dan boleh dipulihkan melalui Undo.`,'Padam');if(!ok)return;
   try{
     const res=await bridge('jtAdminDeactivateAssignment',state.token,old.assignmentId);applyTeacherList(res.teachers);if(!$('editModal').classList.contains('hidden'))closeModal('editModal');await loadAdminTeacher();
-    showToast('Pelantikan dipadam.','success','Undo',async()=>{const restored=await bridge('jtAdminSaveAssignment',state.token,{assignmentId:old.assignmentId,personId,committeeId:old.committeeId,scoreCode:old.scoreCode,portfolioBasis:old.portfolioBasis||'',note:old.note||'',sessionYear:state.sessionYear});applyTeacherList(restored.teachers);await loadAdminTeacher();toast('Pelantikan dipulihkan')});
+    showToast('Pelantikan dipadam.','success','Undo',async()=>{const restored=await bridge('jtAdminSaveAssignment',state.token,{assignmentId:old.assignmentId,personId,committeeId:old.committeeId,scoreCode:old.scoreCode,roleTemplateId:old.roleTemplateId||0,portfolioBasis:old.portfolioBasis||'',note:old.note||'',sessionYear:state.sessionYear});applyTeacherList(restored.teachers);await loadAdminTeacher();toast('Pelantikan dipulihkan')});
   }catch(e){showError(e)}
 }
 $('deactivateAssignment').onclick=async()=>{const b=$('deactivateAssignment');b.disabled=true;try{await deleteAssignment(state.editingAssignment)}finally{b.disabled=false}};
