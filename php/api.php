@@ -54,8 +54,8 @@ function jt_rpc(string $fn,array $a){
       case 'jtAdminBulkReassign': return jt_admin_bulk_reassign((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(string)($a[2]??''),(int)($a[3]??0));
       case 'jtAdminBulkDeactivate': return jt_admin_bulk_deactivate((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(int)($a[2]??0));
       case 'jtGetCommitteeRoles': return jt_get_committee_roles((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
-      case 'jtAdminUpdatePoint': return jt_admin_update_point((string)($a[0]??''),(string)($a[1]??''),$a[2]??0,(string)($a[3]??$a[1]??''));
-      case 'jtAdminDeletePoint': return jt_admin_delete_point((string)($a[0]??''),(string)($a[1]??''));
+      case 'jtAdminUpdatePoint': return jt_admin_update_point((string)($a[0]??''),(string)($a[1]??''),$a[2]??0,(string)($a[3]??$a[1]??''),(int)($a[4]??0));
+      case 'jtAdminDeletePoint': return jt_admin_delete_point((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
       case 'jtAdminUpdateTeacher': return jt_admin_update_teacher((string)($a[0]??''),(string)($a[1]??''),(string)($a[2]??''));
       case 'jtAdminSaveCommittee': return jt_admin_save_committee((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[]);
       case 'jtAdminDeleteCommittee': return jt_admin_delete_committee((string)($a[0]??''),(string)($a[1]??''));
@@ -290,33 +290,33 @@ function jt_admin_bulk_deactivate(string $token,array $assignmentIds,int $reques
       jt_audit($u,'BULK_DEACTIVATE','PELANTIKAN',(string)$year,['count'=>$count,'ids'=>$ids]);$pdo->commit();return ['ok'=>true,'count'=>$count,'teachers'=>jt_rebuild_stats($year)];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
-function jt_admin_update_point(string $token,string $code,$points,string $newName): array {
-    $u=jt_user($token,true);$year=jt_admin_session_year();jt_assert_session_editable($year);$code=trim($code);$newName=trim($newName);$points=(float)$points;
+function jt_admin_update_point(string $token,string $code,$points,string $newName,int $requestedYear=0): array {
+    $u=jt_user($token,true);$year=jt_resolve_session_year($u,$requestedYear);jt_assert_session_editable($year);$code=trim($code);$newName=trim($newName);$points=(float)$points;
     if($code===''||$newName===''||$points<0||$points>100) throw new InvalidArgumentException('Nama jawatan atau mata tidak sah.');
     $old=jt_one('SELECT * FROM point_rules WHERE kod_skor=?',[$code]);if(!$old)throw new RuntimeException('Jawatan tidak dijumpai.');
     $pdo=jt_db();$pdo->beginTransaction();
     try{
-      $count=(int)(jt_one("SELECT COUNT(*) c FROM pelantikan p JOIN sessions s ON s.session_year=p.session_year WHERE (p.peranan=? OR p.kod_skor=?) AND p.aktif=1 AND s.status IN ('DRAFT','REVIEW')",[$code,$code])['c']??0);
+      $count=(int)(jt_one("SELECT COUNT(*) c FROM pelantikan p WHERE (p.peranan=? OR p.kod_skor=?) AND p.aktif=1 AND p.session_year=?",[$code,$code,$year])['c']??0);
       if(jt_norm($newName)!==jt_norm($code)){
         if(jt_one('SELECT kod_skor FROM point_rules WHERE UPPER(TRIM(kod_skor))=UPPER(TRIM(?)) LIMIT 1',[$newName]))throw new RuntimeException('Nama jawatan baharu sudah wujud.');
         jt_exec('INSERT INTO point_rules(kod_skor,mata,sumber,catatan,aktif,recommended_points,role_level,role_group,source_ref,official_structure) VALUES (?,?,?,?,1,?,?,?,?,?)',[
           $newName,$points,$old['sumber'],$old['catatan'],$old['recommended_points'],$old['role_level'],$old['role_group'],$old['source_ref'],$old['official_structure']]);
-        jt_exec("UPDATE pelantikan p JOIN sessions s ON s.session_year=p.session_year SET p.peranan=?,p.kod_skor=?,p.mata=?,p.updated_at=?,p.updated_by=? WHERE (p.peranan=? OR p.kod_skor=?) AND s.status IN ('DRAFT','REVIEW')",[$newName,$newName,$points,jt_now(),$u['email'],$code,$code]);
-        jt_exec("UPDATE committee_role_templates t JOIN sessions s ON s.session_year=t.session_year SET t.role_name=?,t.role_code=? WHERE t.role_code=? AND s.status IN ('DRAFT','REVIEW')",[$newName,$newName,$code]);
+        jt_exec("UPDATE pelantikan SET peranan=?,kod_skor=?,mata=?,updated_at=?,updated_by=? WHERE (peranan=? OR kod_skor=?) AND session_year=?",[$newName,$newName,$points,jt_now(),$u['email'],$code,$code,$year]);
+        jt_exec("UPDATE committee_role_templates SET role_name=?,role_code=? WHERE role_code=? AND session_year=?",[$newName,$newName,$code,$year]);
         jt_exec('UPDATE point_rules SET aktif=0 WHERE kod_skor=?',[$code]);
       }else{
         jt_exec('UPDATE point_rules SET mata=?,aktif=1 WHERE kod_skor=?',[$points,$code]);
-        jt_exec("UPDATE pelantikan p JOIN sessions s ON s.session_year=p.session_year SET p.mata=?,p.updated_at=?,p.updated_by=? WHERE p.kod_skor=? AND s.status IN ('DRAFT','REVIEW')",[$points,jt_now(),$u['email'],$code]);
+        jt_exec("UPDATE pelantikan SET mata=?,updated_at=?,updated_by=? WHERE kod_skor=? AND session_year=?",[$points,jt_now(),$u['email'],$code,$year]);
       }
       jt_audit($u,'UPDATE_POINT_RULE','POINT_RULE',$code,['before'=>['name'=>$code,'points'=>(float)$old['mata']],'after'=>['name'=>$newName,'points'=>$points],'draftAssignmentsUpdated'=>$count]);$pdo->commit();
       $year=jt_admin_session_year();return ['ok'=>true,'oldName'=>$code,'name'=>$newName,'points'=>$points,'assignmentsUpdated'=>$count,'teachers'=>jt_teacher_stats($year)];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
-function jt_admin_delete_point(string $token,string $code): array {
-    $u=jt_user($token,true);$year=jt_admin_session_year();jt_assert_session_editable($year);$code=trim($code);if($code==='')throw new InvalidArgumentException('Nama jawatan diperlukan.');
+function jt_admin_delete_point(string $token,string $code,int $requestedYear=0): array {
+    $u=jt_user($token,true);$year=jt_resolve_session_year($u,$requestedYear);jt_assert_session_editable($year);$code=trim($code);if($code==='')throw new InvalidArgumentException('Nama jawatan diperlukan.');
     $rule=jt_one('SELECT * FROM point_rules WHERE kod_skor=? AND aktif=1',[$code]);if(!$rule)throw new RuntimeException('Jawatan tidak dijumpai atau sudah dipadam.');
-    $active=(int)(jt_one("SELECT COUNT(*) c FROM pelantikan p JOIN sessions s ON s.session_year=p.session_year WHERE p.kod_skor=? AND p.aktif=1 AND s.status IN ('DRAFT','REVIEW')",[$code])['c']??0);
-    $templates=(int)(jt_one("SELECT COUNT(*) c FROM committee_role_templates t JOIN sessions s ON s.session_year=t.session_year WHERE t.role_code=? AND t.aktif=1 AND s.status IN ('DRAFT','REVIEW')",[$code])['c']??0);
+    $active=(int)(jt_one("SELECT COUNT(*) c FROM pelantikan WHERE kod_skor=? AND aktif=1 AND session_year=?",[$code,$year])['c']??0);
+    $templates=(int)(jt_one("SELECT COUNT(*) c FROM committee_role_templates WHERE role_code=? AND aktif=1 AND session_year=?",[$code,$year])['c']??0);
     if($active>0||$templates>0)throw new RuntimeException('Jawatan ini masih digunakan dalam sesi DRAFT/REVIEW ('.$active.' pelantikan, '.$templates.' template). Ubah struktur dahulu.');
     jt_exec('UPDATE point_rules SET aktif=0 WHERE kod_skor=?',[$code]);jt_audit($u,'DELETE_POINT_RULE','POINT_RULE',$code,['mode'=>'soft-delete','points'=>(float)$rule['mata']]);return ['ok'=>true,'code'=>$code];
 }
