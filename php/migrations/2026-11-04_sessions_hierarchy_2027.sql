@@ -380,7 +380,8 @@ VALUES
 (2026,'SOURCE','Manual Pengurusan SMKBBSL 2026','Hierarki jawatankuasa dan jawatan dirujuk daripada Manual Pengurusan Sekolah SMKBBSL Versi 5. Beberapa kod dalam kandungan manual berulang; sistem mengekalkan rujukan asal dan menanda variasi secara eksplisit.','MIGRATION'),
 (2026,'SOURCE','MySG / SPI KPM Bil. 4 Tahun 2021','Digunakan sebagai kerangka tadbir urus sekolah.','MIGRATION'),
 (2026,'SOURCE','SPI KPM Bil. 2 Tahun 2023 - Panitia Mata Pelajaran','Digunakan untuk struktur panitia, Ketua Panitia dan keahlian Jawatankuasa Pengurusan Kurikulum.','MIGRATION'),
-(2026,'SOURCE','SPI KPM Bil. 1 Tahun 2022 - Guru Data','Digunakan sebagai bukti beban masa khusus Guru Data; tujuh jam seminggu untuk pengurusan data dan waktu mengajar maksimum lapan jam seminggu.','MIGRATION');
+(2026,'SOURCE','SPI KPM Bil. 1 Tahun 2022 - Guru Data','Digunakan sebagai bukti beban masa khusus Guru Data; tujuh jam seminggu untuk pengurusan data dan waktu mengajar maksimum lapan jam seminggu.','MIGRATION'),
+(2026,'REFERENCE_DIFFERENCE','JM07 Bencana: Manual sekolah vs SPI KPM Bil. 6 Tahun 2021','Manual sekolah 2026 menyenaraikan tiga Naib Pengerusi dan setiausaha khusus sekolah; SPI KPM Bil.6/2021 menetapkan Pengerusi Pengetua/GB, Timbalan Pengerusi GPK Pentadbiran dan Setiausaha GPK HEM. Sistem mengekalkan struktur manual sekolah sebagai sumber operasi, tetapi perbezaan ini ditanda untuk semakan 2027.','MIGRATION');
 
 -- Verification
 SELECT session_year,label,status FROM sessions ORDER BY session_year;
