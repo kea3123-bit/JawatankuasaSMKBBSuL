@@ -175,8 +175,8 @@ function jt_get_committee_roles(string $token,string $committeeId,int $requested
       'templateId'=>(int)$r['template_id'],'roleName'=>(string)$r['role_name'],'roleCode'=>(string)$r['role_code'],
       'rank'=>(int)$r['hierarchy_rank'],'min'=>(int)$r['min_count'],'max'=>$r['max_count']!==null?(int)$r['max_count']:null,
       'required'=>!empty($r['required_role']),'points'=>$r['points_override']!==null?(float)$r['points_override']:(float)($r['default_points']??0),
-      'recommendedPoints'=>$r['recommended_points']!==null?(float)$r['recommended_points']:null,
-      'portfolioBasis'=>(string)($r['portfolio_basis']??''),'sourceType'=>(string)$r['source_type'],'sourceRef'=>(string)($r['source_ref']??'')
+      'pointsOverride'=>$r['points_override']!==null?(float)$r['points_override']:null,'recommendedPoints'=>$r['recommended_points']!==null?(float)$r['recommended_points']:null,
+      'portfolioBasis'=>(string)($r['portfolio_basis']??''),'sourceType'=>(string)$r['source_type'],'sourceRef'=>(string)($r['source_ref']??''),'notes'=>(string)($r['notes']??'')
     ];
     return ['ok'=>true,'year'=>$year,'committeeId'=>$committeeId,'manualRef'=>(string)($comm['manual_ref']??''),'roles'=>$roles];
 }
