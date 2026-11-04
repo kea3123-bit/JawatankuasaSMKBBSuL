@@ -71,37 +71,62 @@ function jt_user_public(array $u): array {
       'isAdmin'=>!empty($u['isAdmin']),'adminSource'=>(string)($u['adminSource']??'')
     ];
 }
-function jt_get_bootstrap(string $token,bool $includeSearch): array {
-    $u=jt_user($token,false);$stats=jt_teacher_stats();
+function jt_get_sessions(string $token): array {
+    $u=jt_user($token,false);
+    $sql=!empty($u['isAdmin'])
+      ? "SELECT * FROM sessions ORDER BY session_year DESC"
+      : "SELECT * FROM sessions WHERE status IN ('PUBLISHED','ARCHIVED') ORDER BY session_year DESC";
+    $rows=jt_rows($sql);
+    $sessions=array_map(static fn($r)=>[
+      'year'=>(int)$r['session_year'],'label'=>(string)$r['label'],'status'=>(string)$r['status'],
+      'sourceYear'=>$r['source_year']!==null?(int)$r['source_year']:null,
+      'editable'=>in_array((string)$r['status'],['DRAFT','REVIEW'],true)
+    ],$rows);
+    return ['ok'=>true,'sessions'=>$sessions,'defaultYear'=>!empty($u['isAdmin'])?jt_admin_session_year():jt_public_session_year()];
+}
+function jt_get_bootstrap(string $token,bool $includeSearch,int $requestedYear=0): array {
+    $u=jt_user($token,false);$year=jt_resolve_session_year($u,$requestedYear);$stats=jt_teacher_stats($year);
     $public=array_map(static fn($t)=>['id'=>$t['id'],'name'=>$t['name'],'jobTitle'=>$t['jobTitle'],'count'=>$t['count']],$stats);
-    $s=jt_settings();
-    $out=['ok'=>true,'user'=>jt_user_public($u),'teachers'=>!empty($u['isAdmin'])?$stats:$public,'school'=>$s['SCHOOL_NAME']??'SMK Bandar Baru Sungai Lalang','year'=>$s['YEAR']??'2026'];
+    $s=jt_settings();$session=jt_session_row($year);$sessionData=jt_get_sessions($token);
+    $out=[
+      'ok'=>true,'user'=>jt_user_public($u),'teachers'=>!empty($u['isAdmin'])?$stats:$public,
+      'school'=>$s['SCHOOL_NAME']??'SMK Bandar Baru Sungai Lalang','year'=>$year,
+      'session'=>['year'=>$year,'label'=>(string)($session['label']??('Sesi '.$year)),'status'=>(string)($session['status']??'PUBLISHED'),'editable'=>in_array((string)($session['status']??''),['DRAFT','REVIEW'],true)],
+      'sessions'=>$sessionData['sessions']
+    ];
     if($includeSearch){
         $out['searchPeople']=array_map(static fn($r)=>['id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'group'=>(string)$r['kumpulan'],'jobTitle'=>(string)$r['jawatan_hakiki']],jt_rows("SELECT person_id,nama,kumpulan,jawatan_hakiki FROM guru WHERE aktif=1 AND kumpulan IN ('Guru','AKP') ORDER BY nama"));
-        $rules=!empty($u['isAdmin'])?jt_rule_map():[];
         $records=[];
-        foreach(jt_rows("SELECT p.person_id,p.nama,p.committee_id,p.jawatankuasa,p.peranan,p.kod_skor,p.bidang FROM pelantikan p JOIN guru g ON g.person_id=p.person_id WHERE p.aktif=1 AND g.aktif=1 ORDER BY p.nama,p.jawatankuasa") as $r){
-            $x=['personId'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'field'=>(string)$r['bidang']];
-            if(!empty($u['isAdmin']))$x['points']=(float)($rules[(string)$r['kod_skor']]??0);
+        foreach(jt_rows("SELECT p.person_id,p.nama,p.committee_id,p.jawatankuasa,p.peranan,p.kod_skor,p.bidang,p.mata,j.manual_ref,j.parent_committee_id,j.component_code,j.hierarchy_level
+          FROM pelantikan p JOIN guru g ON g.person_id=p.person_id LEFT JOIN jawatankuasa j ON j.committee_id=p.committee_id
+          WHERE p.aktif=1 AND p.session_year=? AND g.aktif=1 ORDER BY p.nama,p.jawatankuasa",[$year]) as $r){
+            $x=['personId'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'field'=>(string)$r['bidang'],
+                'manualRef'=>(string)($r['manual_ref']??''),'parentId'=>(string)($r['parent_committee_id']??''),'component'=>(string)($r['component_code']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1)];
+            if(!empty($u['isAdmin']))$x['points']=(float)$r['mata'];
             $records[]=$x;
         }
         $out['searchRecords']=$records;
-        $out['searchCommittees']=array_map(static fn($r)=>['id'=>(string)$r['committee_id'],'code'=>(string)($r['kod_manual']??''),'name'=>(string)$r['nama_jawatankuasa'],'field'=>(string)$r['bidang']],jt_rows('SELECT committee_id,kod_manual,nama_jawatankuasa,bidang FROM jawatankuasa WHERE aktif=1 ORDER BY nama_jawatankuasa'));
+        $out['searchCommittees']=array_map(static fn($r)=>[
+          'id'=>(string)$r['committee_id'],'code'=>(string)($r['kod_manual']??''),'manualRef'=>(string)($r['manual_ref']??''),
+          'name'=>(string)$r['nama_jawatankuasa'],'field'=>(string)$r['bidang'],'component'=>(string)($r['component_code']??''),
+          'parentId'=>(string)($r['parent_committee_id']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1),'sortOrder'=>(int)($r['sort_order']??0)
+        ],jt_rows('SELECT * FROM jawatankuasa WHERE aktif=1 AND session_year=? ORDER BY sort_order,manual_ref,nama_jawatankuasa',[$year]));
     }
     return $out;
 }
-function jt_get_teacher_detail(string $token,string $personId): array {
-    $u=jt_user($token,false);$p=jt_one('SELECT * FROM guru WHERE person_id=?',[$personId]);
+function jt_get_teacher_detail(string $token,string $personId,int $requestedYear=0): array {
+    $u=jt_user($token,false);$year=jt_resolve_session_year($u,$requestedYear);$p=jt_one('SELECT * FROM guru WHERE person_id=?',[$personId]);
     if(!$p) throw new RuntimeException('Individu tidak dijumpai.');
-    $rules=!empty($u['isAdmin'])?jt_rule_map():[];$assign=[];
-    foreach(jt_rows('SELECT * FROM pelantikan WHERE person_id=? AND aktif=1 ORDER BY bidang,jawatankuasa,peranan',[$personId]) as $r){
-        $x=['assignmentId'=>(string)$r['assignment_id'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'scoreCode'=>(string)$r['kod_skor'],'field'=>(string)$r['bidang'],'type'=>(string)$r['jenis'],'note'=>(string)($r['catatan']??'')];
-        if(!empty($u['isAdmin']))$x['points']=(float)($rules[(string)$r['kod_skor']]??0);
+    $assign=[];
+    foreach(jt_rows('SELECT p.*,j.manual_ref,j.component_code,j.hierarchy_level FROM pelantikan p LEFT JOIN jawatankuasa j ON j.committee_id=p.committee_id WHERE p.person_id=? AND p.session_year=? AND p.aktif=1 ORDER BY j.sort_order,p.bidang,p.jawatankuasa,p.peranan',[$personId,$year]) as $r){
+        $x=['assignmentId'=>(string)$r['assignment_id'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'scoreCode'=>(string)$r['kod_skor'],'field'=>(string)$r['bidang'],'type'=>(string)$r['jenis'],'note'=>(string)($r['catatan']??''),
+            'portfolioBasis'=>(string)($r['portfolio_basis']??''),'manualRef'=>(string)($r['manual_ref']??''),'component'=>(string)($r['component_code']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1)];
+        if(!empty($u['isAdmin']))$x['points']=(float)$r['mata'];
         $assign[]=$x;
     }
-    $teacher=['personId'=>$personId,'name'=>(string)$p['nama'],'group'=>(string)$p['kumpulan'],'jobTitle'=>(string)$p['jawatan_hakiki'],'email'=>(string)($p['emel']??''),'taskCount'=>count($assign)];
+    $teacher=['personId'=>$personId,'name'=>(string)$p['nama'],'group'=>(string)$p['kumpulan'],'jobTitle'=>(string)$p['jawatan_hakiki'],'email'=>(string)($p['emel']??''),'taskCount'=>count($assign),'sessionYear'=>$year];
     if(!empty($u['isAdmin']))$teacher['totalPoints']=array_sum(array_map(static fn($x)=>(float)($x['points']??0),$assign));
-    return ['ok'=>true,'teacher'=>$teacher,'assignments'=>$assign];
+    return ['ok'=>true,'teacher'=>$teacher,'assignments'=>$assign,'session'=>jt_session_row($year)];
 }
 function jt_get_admin_rules(string $token): array {
     $u=jt_user($token,true);$usage=[];$activeUsage=[];
@@ -114,14 +139,18 @@ function jt_get_admin_teachers(string $token,bool $forceSync): array {
     $teachers=array_map(static fn($r)=>['id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'jobTitle'=>(string)$r['jawatan_hakiki'],'email'=>(string)($r['emel']??'')],jt_rows("SELECT person_id,nama,jawatan_hakiki,emel FROM guru WHERE kumpulan='Guru' AND aktif=1 ORDER BY nama"));
     return ['ok'=>true,'user'=>jt_user_public($u),'sync'=>$sync,'teachers'=>$teachers];
 }
-function jt_get_admin_committees(string $token): array {
-    $u=jt_user($token,true);$usage=[];$activeUsage=[];
-    foreach(jt_rows('SELECT committee_id,COUNT(*) c,SUM(CASE WHEN aktif=1 THEN 1 ELSE 0 END) active_c FROM pelantikan GROUP BY committee_id') as $r){$usage[(string)$r['committee_id']]=(int)$r['c'];$activeUsage[(string)$r['committee_id']]=(int)$r['active_c'];}
-    $list=[];foreach(jt_rows('SELECT * FROM jawatankuasa WHERE aktif=1 ORDER BY nama_jawatankuasa') as $r)$list[]=['id'=>(string)$r['committee_id'],'code'=>(string)($r['kod_manual']??''),'name'=>(string)$r['nama_jawatankuasa'],'field'=>(string)$r['bidang'],'usageCount'=>$usage[(string)$r['committee_id']]??0,'activeUsageCount'=>$activeUsage[(string)$r['committee_id']]??0];
-    return ['ok'=>true,'user'=>jt_user_public($u),'committees'=>$list];
+function jt_get_admin_committees(string $token,int $requestedYear=0): array {
+    $u=jt_user($token,true);$year=jt_resolve_session_year($u,$requestedYear);$usage=[];$activeUsage=[];
+    foreach(jt_rows('SELECT committee_id,COUNT(*) c,SUM(CASE WHEN aktif=1 THEN 1 ELSE 0 END) active_c FROM pelantikan WHERE session_year=? GROUP BY committee_id',[$year]) as $r){$usage[(string)$r['committee_id']]=(int)$r['c'];$activeUsage[(string)$r['committee_id']]=(int)$r['active_c'];}
+    $list=[];foreach(jt_rows('SELECT * FROM jawatankuasa WHERE aktif=1 AND session_year=? ORDER BY sort_order,manual_ref,nama_jawatankuasa',[$year]) as $r)$list[]=[
+      'id'=>(string)$r['committee_id'],'code'=>(string)($r['kod_manual']??''),'manualRef'=>(string)($r['manual_ref']??''),'name'=>(string)$r['nama_jawatankuasa'],'field'=>(string)$r['bidang'],
+      'component'=>(string)($r['component_code']??''),'parentId'=>(string)($r['parent_committee_id']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1),'sortOrder'=>(int)($r['sort_order']??0),
+      'sourceRef'=>(string)($r['source_ref']??''),'usageCount'=>$usage[(string)$r['committee_id']]??0,'activeUsageCount'=>$activeUsage[(string)$r['committee_id']]??0
+    ];
+    return ['ok'=>true,'user'=>jt_user_public($u),'year'=>$year,'session'=>jt_session_row($year),'committees'=>$list];
 }
 function jt_get_admin_data(string $token): array {
-    return ['ok'=>true,'rules'=>jt_get_admin_rules($token)['rules'],'teachers'=>jt_get_admin_teachers($token,false)['teachers'],'committees'=>jt_get_admin_committees($token)['committees']];
+    $year=jt_admin_session_year();return ['ok'=>true,'year'=>$year,'rules'=>jt_get_admin_rules($token)['rules'],'teachers'=>jt_get_admin_teachers($token,false)['teachers'],'committees'=>jt_get_admin_committees($token,$year)['committees']];
 }
 function jt_admin_update_point(string $token,string $code,$points,string $newName): array {
     $u=jt_user($token,true);$code=trim($code);$newName=trim($newName);$points=(float)$points;
