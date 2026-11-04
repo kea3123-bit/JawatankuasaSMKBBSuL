@@ -78,28 +78,44 @@ function jt_audit(array $u,string $action,string $targetType,string $targetId,$d
     } catch(Throwable $ignored) {}
 }
 function jt_settings(): array {$out=[];foreach(jt_rows('SELECT setting_key,setting_value FROM settings') as $r)$out[(string)$r['setting_key']]=$r['setting_value'];return $out;}
+function jt_session_row(int $year): ?array { return jt_one('SELECT * FROM sessions WHERE session_year=?',[$year]); }
+function jt_public_session_year(): int {
+    $r=jt_one("SELECT session_year FROM sessions WHERE status IN ('PUBLISHED','ARCHIVED') ORDER BY CASE WHEN status='PUBLISHED' THEN 0 ELSE 1 END,session_year DESC LIMIT 1");
+    return (int)($r['session_year']??2026);
+}
+function jt_admin_session_year(): int {
+    $r=jt_one("SELECT session_year FROM sessions ORDER BY CASE status WHEN 'DRAFT' THEN 0 WHEN 'REVIEW' THEN 1 WHEN 'PUBLISHED' THEN 2 ELSE 3 END,session_year DESC LIMIT 1");
+    return (int)($r['session_year']??2026);
+}
+function jt_resolve_session_year(array $user,$year=0): int {
+    $y=(int)$year;if($y<=0)$y=!empty($user['isAdmin'])?jt_admin_session_year():jt_public_session_year();
+    $s=jt_session_row($y);if(!$s)throw new RuntimeException('Sesi '.$y.' tidak dijumpai.');
+    if(empty($user['isAdmin'])&&!in_array((string)$s['status'],['PUBLISHED','ARCHIVED'],true))throw new RuntimeException('Sesi ini belum diterbitkan.');
+    return $y;
+}
+function jt_assert_session_editable(int $year): array {
+    $s=jt_session_row($year);if(!$s)throw new RuntimeException('Sesi '.$year.' tidak dijumpai.');
+    if(!in_array((string)$s['status'],['DRAFT','REVIEW'],true))throw new RuntimeException('Sesi '.$year.' telah dikunci. Tukar status kepada DRAFT/REVIEW sebelum mengubah data.');
+    return $s;
+}
 function jt_rule_map(): array {$out=[];foreach(jt_rows('SELECT kod_skor,mata FROM point_rules WHERE aktif=1') as $r)$out[(string)$r['kod_skor']]=(float)$r['mata'];return $out;}
-function jt_teacher_stats(): array {
+function jt_teacher_stats(int $year=2026): array {
     $rows=jt_rows("SELECT g.person_id,g.nama,g.jawatan_hakiki,g.emel,COALESCE(x.points,0) points,COALESCE(x.cnt,0) cnt
       FROM guru g LEFT JOIN (
-        SELECT p.person_id,SUM(COALESCE(r.mata,0)) points,COUNT(*) cnt
-        FROM pelantikan p LEFT JOIN point_rules r ON r.kod_skor=p.kod_skor AND r.aktif=1
-        WHERE p.aktif=1 GROUP BY p.person_id
+        SELECT p.person_id,SUM(COALESCE(p.mata,0)) points,COUNT(*) cnt
+        FROM pelantikan p
+        WHERE p.aktif=1 AND p.session_year=? GROUP BY p.person_id
       ) x ON x.person_id=g.person_id
-      WHERE g.kumpulan='Guru' AND g.aktif=1 ORDER BY g.nama");
+      WHERE g.kumpulan='Guru' AND g.aktif=1 ORDER BY g.nama",[$year]);
     return array_map(static fn($r)=>[
         'id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'jobTitle'=>(string)$r['jawatan_hakiki'],
         'email'=>(string)($r['emel']??''),'points'=>(float)$r['points'],'count'=>(int)$r['cnt']
     ],$rows);
 }
-function jt_rebuild_stats(): array {
-    jt_exec("UPDATE guru g LEFT JOIN (
-      SELECT p.person_id,SUM(COALESCE(r.mata,0)) total_mata,COUNT(*) bil_tugas
-      FROM pelantikan p LEFT JOIN point_rules r ON r.kod_skor=p.kod_skor AND r.aktif=1
-      WHERE p.aktif=1 GROUP BY p.person_id
-    ) x ON x.person_id=g.person_id
-    SET g.total_mata=COALESCE(x.total_mata,0),g.bil_tugas=COALESCE(x.bil_tugas,0)");
-    return jt_teacher_stats();
+function jt_rebuild_stats(int $year=2026): array {
+    $stats=jt_teacher_stats($year);
+    foreach($stats as $t) jt_exec('UPDATE guru SET total_mata=?,bil_tugas=? WHERE person_id=?',[$t['points'],$t['count'],$t['id']]);
+    return $stats;
 }
 function jt_next_id(string $table,string $column,string $prefix,int $pad): string {
     if (!preg_match('/^[a-z_]+$/',$table)||!preg_match('/^[a-z_]+$/',$column)) throw new RuntimeException('ID config tidak sah.');
