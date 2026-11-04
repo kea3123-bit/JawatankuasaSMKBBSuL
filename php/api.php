@@ -97,10 +97,10 @@ function jt_get_bootstrap(string $token,bool $includeSearch,int $requestedYear=0
     if($includeSearch){
         $out['searchPeople']=array_map(static fn($r)=>['id'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'group'=>(string)$r['kumpulan'],'jobTitle'=>(string)$r['jawatan_hakiki']],jt_rows("SELECT person_id,nama,kumpulan,jawatan_hakiki FROM guru WHERE aktif=1 AND kumpulan IN ('Guru','AKP') ORDER BY nama"));
         $records=[];
-        foreach(jt_rows("SELECT p.person_id,p.nama,p.committee_id,p.jawatankuasa,p.peranan,p.kod_skor,p.bidang,p.mata,j.manual_ref,j.parent_committee_id,j.component_code,j.hierarchy_level
+        foreach(jt_rows("SELECT p.person_id,p.nama,p.committee_id,p.jawatankuasa,p.peranan,p.kod_skor,p.bidang,p.mata,p.portfolio_basis,j.manual_ref,j.parent_committee_id,j.component_code,j.hierarchy_level
           FROM pelantikan p JOIN guru g ON g.person_id=p.person_id LEFT JOIN jawatankuasa j ON j.committee_id=p.committee_id
           WHERE p.aktif=1 AND p.session_year=? AND g.aktif=1 ORDER BY p.nama,p.jawatankuasa",[$year]) as $r){
-            $x=['personId'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'field'=>(string)$r['bidang'],
+            $x=['personId'=>(string)$r['person_id'],'name'=>(string)$r['nama'],'committeeId'=>(string)$r['committee_id'],'committee'=>(string)$r['jawatankuasa'],'role'=>(string)$r['peranan'],'field'=>(string)$r['bidang'],'portfolioBasis'=>(string)($r['portfolio_basis']??''),
                 'manualRef'=>(string)($r['manual_ref']??''),'parentId'=>(string)($r['parent_committee_id']??''),'component'=>(string)($r['component_code']??''),'hierarchyLevel'=>(int)($r['hierarchy_level']??1)];
             if(!empty($u['isAdmin']))$x['points']=(float)$r['mata'];
             $records[]=$x;
