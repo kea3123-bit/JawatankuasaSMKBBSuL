@@ -233,6 +233,18 @@ SET @BILIK=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND na
 UPDATE jawatankuasa SET parent_committee_id=@BILIK,hierarchy_level=3,component_code='LAMPIRAN',source_ref='Lampiran Manual Pengurusan SMKBBSL 2026'
 WHERE session_year=2026 AND nama_jawatankuasa LIKE 'Pengurusan Bilik Khas – %';
 
+-- Ensure canonical structural roles exist in the point catalog.
+INSERT IGNORE INTO point_rules (kod_skor,mata,sumber,catatan,aktif,recommended_points,role_level,role_group,source_ref,official_structure) VALUES
+('Pengerusi',0,'Manual/MySG','Jawatan struktur; lazimnya tanggungjawab hakiki Pengetua/PGB',1,0,1,'PENGURUSAN','Manual Pengurusan / MySG',1),
+('Naib Pengerusi',0,'Manual/MySG','Jawatan struktur; lazimnya tanggungjawab hakiki Penolong Kanan',1,0,2,'PENGURUSAN','Manual Pengurusan / MySG',1),
+('Penyelaras',3,'Manual','Penyelaras operasi jawatankuasa',1,3,3,'PENYELARAS','Manual Pengurusan SMKBBSL 2026',1),
+('Setiausaha',3,'Manual/MySG','Setiausaha jawatankuasa',1,3,4,'SETIAUSAHA','Manual Pengurusan / MySG',1),
+('Penolong Setiausaha',2,'Manual','Penolong setiausaha jawatankuasa',1,2,5,'PENOLONG_SETIAUSAHA','Manual Pengurusan SMKBBSL 2026',1),
+('Bendahari',3,'Manual','Bendahari jawatankuasa',1,3,4,'BENDAHARI','Manual Pengurusan SMKBBSL 2026',1),
+('Penolong Bendahari',2,'Manual','Penolong bendahari jawatankuasa',1,2,5,'PENOLONG_BENDAHARI','Manual Pengurusan SMKBBSL 2026',1),
+('Urus Setia',2,'KPM','Urus setia / sekretariat',1,2,5,'URUSETIA','KPM / Manual Pengurusan',1),
+('AJK',1,'Manual/MySG','Ahli jawatankuasa',1,1,6,'AJK','Manual Pengurusan / MySG',1);
+
 -- Canonical role hierarchy metadata. Existing operational points remain unchanged for 2026.
 UPDATE point_rules SET recommended_points=0,role_level=1,role_group='PENGURUSAN',official_structure=1,source_ref='MySG / Manual Pengurusan' WHERE UPPER(kod_skor) IN ('PENGETUA','PENGERUSI','PENASIHAT');
 UPDATE point_rules SET recommended_points=0,role_level=2,role_group='PENGURUSAN',official_structure=1,source_ref='MySG / Manual Pengurusan' WHERE UPPER(kod_skor) IN ('NAIB PENGERUSI','PENOLONG KANAN PENTADBIRAN','PENOLONG KANAN HAL EHWAL MURID','PENOLONG KANAN KOKURIKULUM');
