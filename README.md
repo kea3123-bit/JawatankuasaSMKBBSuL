@@ -119,3 +119,48 @@ Administration uses safe delete semantics to preserve historical data:
 - Committee **Padam** is allowed only when there are no active assignments using that committee, then the committee is soft-deleted (`aktif=0`).
 - Point-rule **Padam** is allowed only when there are no active assignments using that rule, then the rule is soft-deleted (`aktif=0`).
 - Historical/inactive records remain in MySQL for audit and future session migration.
+
+
+## 2027 planning migration
+
+The 2027 planning system is implemented in:
+
+- `php/migrations/2026-11-04_sessions_hierarchy_2027.sql`
+- `docs/2027-hierarchy-weighting.md`
+
+### Upgrade an existing production database
+
+1. Back up the live `ppdkmyna_jawatankuasabbsul` database.
+2. Upload the latest repository files to `public_html/jawatankuasasmkbbsul/`.
+3. In phpMyAdmin, select the existing Jawatankuasa database.
+4. Import/run **only** `php/migrations/2026-11-04_sessions_hierarchy_2027.sql`.
+5. Do **not** re-import the old full database dump.
+6. Log in as Pengurusan/Pentadbir Sistem.
+7. Open **Pentadbiran → Perancangan Sesi & Struktur**.
+8. While viewing Sesi 2026, click **Cipta Draf 2027 daripada 2026**.
+9. Switch to Sesi 2027 and rearrange assignments, hierarchy and committee-specific role templates.
+10. Use **REVIEW** while checking vacancies/conflicts, then **PUBLISHED** only after management approval.
+
+### Session lifecycle
+
+- `DRAFT`: fully editable.
+- `REVIEW`: editable, but intended for management checking.
+- `PUBLISHED`: locked/read-only and becomes the default public session.
+- `ARCHIVED`: historical read-only session.
+
+Published assignment points are snapshots. Later changes to the point catalog do not rewrite historical sessions.
+
+### 2027 tools
+
+- session selector for public/admin views;
+- clone 2026 → 2027;
+- committee parent/child hierarchy and Manual reference codes;
+- per-committee **Struktur Jawatan** editor;
+- required/min/max role constraints;
+- role name separated from score category and portfolio basis;
+- bulk move and bulk delete of assignments;
+- overload/underload/zero-assignment analysis;
+- required-role vacancy and over-capacity detection;
+- duplicate assignment and duplicate committee checks;
+- year-over-year workload comparison;
+- DRAFT → REVIEW → PUBLISHED workflow.
