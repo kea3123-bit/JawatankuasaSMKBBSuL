@@ -54,6 +54,8 @@ function jt_rpc(string $fn,array $a){
       case 'jtAdminBulkReassign': return jt_admin_bulk_reassign((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(string)($a[2]??''),(int)($a[3]??0));
       case 'jtAdminBulkDeactivate': return jt_admin_bulk_deactivate((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[],(int)($a[2]??0));
       case 'jtGetCommitteeRoles': return jt_get_committee_roles((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
+      case 'jtAdminSaveCommitteeRole': return jt_admin_save_committee_role((string)($a[0]??''),is_array($a[1]??null)?$a[1]:[]);
+      case 'jtAdminDeleteCommitteeRole': return jt_admin_delete_committee_role((string)($a[0]??''),(int)($a[1]??0),(int)($a[2]??0));
       case 'jtAdminUpdatePoint': return jt_admin_update_point((string)($a[0]??''),(string)($a[1]??''),$a[2]??0,(string)($a[3]??$a[1]??''),(int)($a[4]??0));
       case 'jtAdminDeletePoint': return jt_admin_delete_point((string)($a[0]??''),(string)($a[1]??''),(int)($a[2]??0));
       case 'jtAdminUpdateTeacher': return jt_admin_update_teacher((string)($a[0]??''),(string)($a[1]??''),(string)($a[2]??''));
@@ -177,6 +179,39 @@ function jt_get_committee_roles(string $token,string $committeeId,int $requested
       'portfolioBasis'=>(string)($r['portfolio_basis']??''),'sourceType'=>(string)$r['source_type'],'sourceRef'=>(string)($r['source_ref']??'')
     ];
     return ['ok'=>true,'year'=>$year,'committeeId'=>$committeeId,'manualRef'=>(string)($comm['manual_ref']??''),'roles'=>$roles];
+}
+function jt_admin_save_committee_role(string $token,array $p): array {
+    $u=jt_user($token,true);$year=(int)($p['sessionYear']??jt_admin_session_year());jt_assert_session_editable($year);
+    $templateId=(int)($p['templateId']??0);$committeeId=trim((string)($p['committeeId']??''));$roleName=trim((string)($p['roleName']??''));$roleCode=trim((string)($p['roleCode']??''));
+    $rank=max(1,min(9,(int)($p['rank']??6)));$min=max(0,(int)($p['min']??0));$maxRaw=$p['max']??null;$max=($maxRaw===null||$maxRaw==='')?null:max(0,(int)$maxRaw);$required=!empty($p['required'])?1:0;
+    $overrideRaw=$p['pointsOverride']??null;$override=($overrideRaw===null||$overrideRaw==='')?null:(float)$overrideRaw;
+    $portfolio=trim((string)($p['portfolioBasis']??''));$sourceType=trim((string)($p['sourceType']??'LOCAL'));$sourceRef=trim((string)($p['sourceRef']??''));$notes=trim((string)($p['notes']??''));
+    if($committeeId===''||$roleName===''||$roleCode==='')throw new InvalidArgumentException('Jawatankuasa, nama jawatan dan kategori skor diperlukan.');
+    if($max!==null&&$max<$min)throw new InvalidArgumentException('Max orang tidak boleh kurang daripada min orang.');
+    if($override!==null&&($override<0||$override>100))throw new InvalidArgumentException('Override mata tidak sah.');
+    $comm=jt_one('SELECT * FROM jawatankuasa WHERE committee_id=? AND session_year=? AND aktif=1',[$committeeId,$year]);if(!$comm)throw new RuntimeException('Jawatankuasa tidak dijumpai dalam sesi ini.');
+    if(!jt_one('SELECT kod_skor FROM point_rules WHERE kod_skor=? AND aktif=1',[$roleCode]))throw new RuntimeException('Kategori skor tidak dijumpai.');
+    $dup=jt_one('SELECT template_id FROM committee_role_templates WHERE session_year=? AND committee_id=? AND UPPER(TRIM(role_name))=UPPER(TRIM(?)) AND aktif=1 AND template_id<>? LIMIT 1',[$year,$committeeId,$roleName,$templateId]);
+    if($dup)throw new RuntimeException('Nama jawatan ini sudah wujud dalam struktur jawatankuasa.');
+    if($templateId>0){
+      $old=jt_one('SELECT * FROM committee_role_templates WHERE template_id=? AND session_year=? AND committee_id=?',[$templateId,$year,$committeeId]);if(!$old)throw new RuntimeException('Template jawatan tidak dijumpai.');
+      jt_exec('UPDATE committee_role_templates SET role_name=?,role_code=?,hierarchy_rank=?,min_count=?,max_count=?,required_role=?,points_override=?,portfolio_basis=?,source_type=?,source_ref=?,notes=?,aktif=1 WHERE template_id=?',
+        [$roleName,$roleCode,$rank,$min,$max,$required,$override,$portfolio?:null,$sourceType?:'LOCAL',$sourceRef?:null,$notes?:null,$templateId]);
+      jt_audit($u,'UPDATE_COMMITTEE_ROLE','COMMITTEE_ROLE',(string)$templateId,['year'=>$year,'committeeId'=>$committeeId,'before'=>$old,'after'=>$p]);
+    }else{
+      jt_exec('INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref,notes,aktif) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)',
+        [$year,$committeeId,$roleName,$roleCode,$rank,$min,$max,$required,$override,$portfolio?:null,$sourceType?:'LOCAL',$sourceRef?:null,$notes?:null]);
+      $templateId=(int)jt_db()->lastInsertId();jt_audit($u,'ADD_COMMITTEE_ROLE','COMMITTEE_ROLE',(string)$templateId,['year'=>$year,'committeeId'=>$committeeId,'roleName'=>$roleName,'roleCode'=>$roleCode]);
+    }
+    return ['ok'=>true,'templateId'=>$templateId,'roles'=>jt_get_committee_roles($token,$committeeId,$year)['roles']];
+}
+function jt_admin_delete_committee_role(string $token,int $templateId,int $requestedYear=0): array {
+    $u=jt_user($token,true);$year=jt_resolve_session_year($u,$requestedYear);jt_assert_session_editable($year);
+    $t=jt_one('SELECT * FROM committee_role_templates WHERE template_id=? AND session_year=? AND aktif=1',[$templateId,$year]);if(!$t)throw new RuntimeException('Template jawatan tidak dijumpai.');
+    $used=(int)(jt_one('SELECT COUNT(*) c FROM pelantikan WHERE session_year=? AND role_template_id=? AND aktif=1',[$year,$templateId])['c']??0);
+    if($used>0)throw new RuntimeException('Template jawatan ini masih digunakan oleh '.$used.' pelantikan aktif. Tukar atau padam pelantikan tersebut dahulu.');
+    jt_exec('UPDATE committee_role_templates SET aktif=0 WHERE template_id=?',[$templateId]);jt_audit($u,'DELETE_COMMITTEE_ROLE','COMMITTEE_ROLE',(string)$templateId,['year'=>$year,'committeeId'=>$t['committee_id'],'roleName'=>$t['role_name']]);
+    return ['ok'=>true,'templateId'=>$templateId];
 }
 function jt_get_session_dashboard(string $token,int $requestedYear=0,int $compareYear=0): array {
     $u=jt_user($token,true);$year=jt_resolve_session_year($u,$requestedYear);$stats=jt_teacher_stats($year);
