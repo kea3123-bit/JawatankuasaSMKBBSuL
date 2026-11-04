@@ -479,7 +479,7 @@ function renderRules(){
     const usage=row?.usageCount||0;
     if(usage){const ok=await askConfirm('Sahkan perubahan jawatan',`${oldName} → ${newName}\nMata: ${row.points} → ${newPoints}\n\nPerubahan ini akan mengemas kini ${usage} rekod pelantikan.`,'Sahkan Perubahan');if(!ok)return}
     b.disabled=true;try{
-      const res=await bridge('jtAdminUpdatePoint',state.token,oldName,newPoints,newName);toast('Jawatan dan mata dikemas kini.');
+      const res=await bridge('jtAdminUpdatePoint',state.token,oldName,newPoints,newName,state.sessionYear);toast('Jawatan dan mata dikemas kini.');
       if(res.teachers){state.teachers=res.teachers;invalidateSearchIndex();renderTeachers()}
       if(row){row.code=newName;row.points=newPoints;row.usageCount=res.assignmentsUpdated||usage}
       a.rules.sort((x,y)=>y.points-x.points||x.code.localeCompare(y.code,'ms'));renderRules();
@@ -489,7 +489,7 @@ function renderRules(){
     const code=b.dataset.rule,row=a.rules.find(x=>x.code===code),active=Number(row?.activeUsageCount||0);
     if(active>0)return showError(`Jawatan ini masih digunakan oleh ${active} pelantikan aktif. Padam atau tukar pelantikan tersebut dahulu.`);
     const ok=await askConfirm('Padam nilai mata jawatan',`Padam "${code}" daripada senarai aktif?\n\nRekod sejarah lama akan kekal dalam database.`,'Padam');if(!ok)return;
-    b.disabled=true;try{await bridge('jtAdminDeletePoint',state.token,code);a.rules=a.rules.filter(x=>x.code!==code);invalidateSearchIndex();renderRules();toast('Nilai mata jawatan dipadam.')}catch(e){showError(e)}finally{b.disabled=false}
+    b.disabled=true;try{await bridge('jtAdminDeletePoint',state.token,code,state.sessionYear);a.rules=a.rules.filter(x=>x.code!==code);invalidateSearchIndex();renderRules();toast('Nilai mata jawatan dipadam.')}catch(e){showError(e)}finally{b.disabled=false}
   });
 }
 $('ruleSearch').oninput=()=>state.admin?.rules&&renderRules();$('refreshRules').onclick=()=>loadAdminRules(true);
