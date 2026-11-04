@@ -258,6 +258,105 @@ UPDATE point_rules SET recommended_points=5,role_level=3,role_group='PORTFOLIO_K
 UPDATE point_rules SET recommended_points=5,role_level=3,role_group='PORTFOLIO_KRITIKAL',official_structure=1,source_ref='Manual Pengurusan SMKBBSL 2026' WHERE UPPER(kod_skor) IN ('SU KURIKULUM','SU HEM','SU SUKAN','GURU KELAS','GURU PSS');
 UPDATE point_rules SET recommended_points=mata WHERE recommended_points IS NULL;
 
+-- Build an initial role template for every committee from the actual 2026 appointments.
+-- This preserves local school-specific roles while separating role_name from scoring role_code.
+INSERT IGNORE INTO committee_role_templates
+(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref,notes)
+SELECT
+  2026,p.committee_id,p.peranan,p.kod_skor,COALESCE(r.role_level,6),0,NULL,0,NULL,
+  CASE
+    WHEN p.jenis='Mengikut jawatan' AND p.catatan LIKE 'Disenaraikan dalam manual sebagai:%'
+      THEN TRIM(SUBSTRING_INDEX(p.catatan,':',-1))
+    ELSE NULL
+  END,
+  'LOCAL_2026','Manual Pengurusan SMKBBSL 2026 / pelantikan 2026',
+  CONCAT('Dibina daripada ',COUNT(*),' pelantikan aktif 2026')
+FROM pelantikan p
+LEFT JOIN point_rules r ON r.kod_skor=p.kod_skor
+WHERE p.session_year=2026 AND p.aktif=1
+GROUP BY p.committee_id,p.peranan,p.kod_skor,r.role_level,p.jenis,
+  CASE WHEN p.jenis='Mengikut jawatan' AND p.catatan LIKE 'Disenaraikan dalam manual sebagai:%'
+       THEN TRIM(SUBSTRING_INDEX(p.catatan,':',-1)) ELSE NULL END;
+
+-- Committee-specific role requirements taken from the local Manual.
+-- JM21 Induk Kurikulum
+SET @C_JM21=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM21' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM21,'Pengerusi','Pengerusi',1,1,1,1,0,'Pengetua','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM21,'Naib Pengerusi','Naib Pengerusi',2,3,3,1,0,'Penolong Kanan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM21,'Setiausaha','SU KURIKULUM',4,1,1,1,5,'SU Kurikulum','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM21,'Guru Kanan Mata Pelajaran','Guru Kanan Mata Pelajaran',5,4,4,1,0,'Guru Kanan Mata Pelajaran','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM21,'Guru Data','GURU DATA',3,1,1,1,5,'Guru Data','MANUAL_KPM','Manual p.86 + SPI KPM Bil.1/2022'),
+(2026,@C_JM21,'AJK','AJK',6,0,NULL,0,1,'Ketua Panitia','MANUAL_KPM','Manual p.86 + SPI KPM Bil.2/2023')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
+-- JM21/1 Jadual Waktu
+SET @C_JM211=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM21/1' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM211,'Pengerusi','Pengerusi',1,1,1,1,0,'Pengetua','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM211,'Naib Pengerusi','Naib Pengerusi',2,3,3,1,0,'Penolong Kanan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM211,'Penyelaras','Penyelaras',3,1,1,1,3,'GK Teknik & Vokasional','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM211,'Setiausaha','Setiausaha',4,1,1,1,3,NULL,'MANUAL','Manual Pengurusan SMKBBSL 2026 p.86'),
+(2026,@C_JM211,'AJK','AJK',6,0,NULL,0,1,'GKMP / Ketua Panitia','MANUAL','Manual Pengurusan SMKBBSL 2026 p.86')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
+-- JM25 Induk HEM
+SET @C_JM25=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM25' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM25,'Pengerusi','Pengerusi',1,1,1,1,0,'Pengetua','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Naib Pengerusi','Naib Pengerusi',2,3,3,1,0,'Penolong Kanan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Setiausaha','SU HEM',4,1,1,1,5,'SU HEM','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Penolong Setiausaha','Penolong Setiausaha',5,1,1,1,2,NULL,'MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Ketua Guru Disiplin','AJK',4,1,1,1,3,'Ketua Guru Disiplin','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Penolong Ketua Guru Disiplin','AJK',5,1,1,1,2,'Penolong Ketua Guru Disiplin','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Ketua Guru Pengawas','KETUA GURU PENGAWAS',4,1,1,1,5,'Ketua Guru Pengawas','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89'),
+(2026,@C_JM25,'Penolong Ketua Guru Pengawas','PEN. KETUA GURU PENGAWAS',5,1,1,1,4,'Penolong Ketua Guru Pengawas','MANUAL','Manual Pengurusan SMKBBSL 2026 p.89')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
+-- JM30 Induk Kokurikulum
+SET @C_JM30=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM30' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM30,'Pengerusi','Pengerusi',1,1,1,1,0,'Pengetua','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Naib Pengerusi','Naib Pengerusi',2,3,3,1,0,'Penolong Kanan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Setiausaha','Setiausaha',4,1,1,1,3,'Setiausaha Kokurikulum','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Pen. Setiausaha','Penolong Setiausaha',5,1,1,1,2,'Penolong Setiausaha Kokurikulum','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Setiausaha Sukan','SU SUKAN',4,1,1,1,5,'SU Sukan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Pen. Setiausaha Sukan','Penolong Setiausaha',5,1,1,1,2,'Penolong SU Sukan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Setiausaha PAJSK','Setiausaha',4,1,1,1,3,'SU PAJSK','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Pen. SU PAJSK','Penolong Setiausaha',5,1,1,1,2,'Penolong SU PAJSK','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'Setiausaha 1M1S','Setiausaha',4,1,1,1,3,'SU 1M1S','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94'),
+(2026,@C_JM30,'AJK','AJK',6,0,NULL,0,1,'Penyelaras / Ketua Guru Penasihat','MANUAL','Manual Pengurusan SMKBBSL 2026 p.94')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
+-- JM02 Maklumat: KPM explicitly assigns Guru Data as secretary to JPMS.
+SET @C_JM02=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM02' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM02,'Pengerusi','Pengerusi',1,1,1,1,0,'Pengetua','MANUAL','Manual Pengurusan SMKBBSL 2026 p.69'),
+(2026,@C_JM02,'Naib Pengerusi','Naib Pengerusi',2,3,3,1,0,'Penolong Kanan','MANUAL','Manual Pengurusan SMKBBSL 2026 p.69'),
+(2026,@C_JM02,'Setiausaha EMIS / APDM','GURU DATA',4,1,1,1,5,'Guru Data','MANUAL_KPM','Manual p.69 + SPI KPM Bil.1/2022'),
+(2026,@C_JM02,'AJK','AJK',6,0,NULL,0,1,NULL,'MANUAL','Manual Pengurusan SMKBBSL 2026 p.69')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
+-- JM09 Kelab Warga: roles are not ex-officio management roles, so local operational points apply.
+SET @C_JM09=(SELECT committee_id FROM jawatankuasa WHERE session_year=2026 AND manual_ref='JM09' LIMIT 1);
+INSERT INTO committee_role_templates(session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,portfolio_basis,source_type,source_ref)
+VALUES
+(2026,@C_JM09,'Pengerusi','PENGERUSI KGS',1,1,1,1,4,'Pengerusi KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Naib Pengerusi','Naib Pengerusi',2,1,1,1,3,'Naib Pengerusi KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Naib Pengerusi 2','Naib Pengerusi',2,1,1,1,3,'Naib Pengerusi KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Setiausaha','Setiausaha',4,1,1,1,3,'Setiausaha KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Pen. Setiausaha','Penolong Setiausaha',5,1,1,1,2,'Penolong Setiausaha KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Bendahari','Bendahari',4,1,1,1,3,'Bendahari KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Naib Bendahari','Penolong Bendahari',5,1,1,1,2,'Naib Bendahari KGS','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'AJK','AJK',6,0,NULL,0,1,NULL,'MANUAL','Manual Pengurusan SMKBBSL 2026 p.71'),
+(2026,@C_JM09,'Juru Audit','AJK',6,1,1,1,1,'Juru Audit','MANUAL','Manual Pengurusan SMKBBSL 2026 p.71')
+ON DUPLICATE KEY UPDATE role_code=VALUES(role_code),hierarchy_rank=VALUES(hierarchy_rank),min_count=VALUES(min_count),max_count=VALUES(max_count),required_role=VALUES(required_role),points_override=VALUES(points_override),portfolio_basis=VALUES(portfolio_basis),source_type=VALUES(source_type),source_ref=VALUES(source_ref);
+
 -- Generic manual-role templates for major committees. These are recommendations for 2027 and do not rewrite 2026 assignments.
 INSERT IGNORE INTO committee_role_templates
 (session_year,committee_id,role_name,role_code,hierarchy_rank,min_count,max_count,required_role,points_override,source_type,source_ref)
